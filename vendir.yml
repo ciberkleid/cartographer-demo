@@ -1,0 +1,56 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+minimumRequiredVersion: 0.8.0
+directories:
+  - path: examples-vendir
+    contents:
+      - path: cartographer-repo
+        git:
+          url: https://github.com/vmware-tanzu/cartographer
+          ref: ksvc-explicit-serviceaccount
+        includePaths:
+          - examples/source-to-knative-service/**
+  - path: infra/base-vendir
+    contents:
+      - path: cert-manager
+        githubRelease:
+          slug: jetstack/cert-manager
+          tag: v1.6.1
+          assetNames: ["cert-manager.yaml"]
+          disableAutoChecksumValidation: true
+      - path: cartographer
+        githubRelease:
+          slug: vmware-tanzu/cartographer
+          tag: v0.0.8-rc.1
+          assetNames: ["cartographer.yaml"]
+          disableAutoChecksumValidation: true
+      - path: tekton
+        githubRelease:
+          slug: tektoncd/pipeline
+          tag: v0.30.0
+          assetNames: ["release.yaml"]
+          disableAutoChecksumValidation: true
+      - path: kpack
+        githubRelease:
+          slug: pivotal/kpack
+          tag: v0.4.2
+          assetNames: ["release-0.4.2.yaml"]
+          disableAutoChecksumValidation: true
+      - path: gitops-toolkit
+        githubRelease:
+          slug: fluxcd/source-controller
+          tag: v0.18.0
+          assetNames: ["source-controller.crds.yaml", "source-controller.deployment.yaml"]
+          disableAutoChecksumValidation: true
+      - path: kapp-controller
+        githubRelease:
+          slug: vmware-tanzu/carvel-kapp-controller
+          tag: v0.30.0
+          assetNames: ["release.yml"]
+          disableAutoChecksumValidation: true
+      - path: knative-serving
+        githubRelease:
+          slug: knative/serving
+          tag: v0.26.0
+          assetNames: ["serving-crds.yaml", "serving-core.yaml"]
+          disableAutoChecksumValidation: true
