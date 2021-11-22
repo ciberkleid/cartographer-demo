@@ -8,7 +8,7 @@ Supply chains can specify any number of activities needed for CI/CD, such as tes
 Each activity must be carried out by a separate, specialized tool.
 Cartographer choreographs a supply chain by configuring the individual activities using your choice of CI/CD tools and passing the output of one as input to another.
 
-By providing thoughtfully designed supply chain configuration APIs, Cartographer provides a unified and reusable way to manage the configuration of disparate CI/CD tools, and it enables a clean separation of concerns between cluster tooling (infra ops), supply chain definition (app ops), and workload configuration (dev).
+By providing thoughtfully designed supply chain configuration APIs, Cartographer provides a unified and reusable way to manage the configuration of disparate CI/CD tools, and it enables a clean separation of concerns between cluster tooling (platform ops), supply chain definition (devops), and workload configuration (dev).
 
 ## What's in this repo?
 
@@ -45,27 +45,28 @@ vendir sync
 > To use a newer version of any dependency, change the version in [vendir.yml](vendir.yml) and re-run `vendir sync`.
 
 #### Create cluster and registry
-To use a kind cluster with a local image registry, we can borrow a setup script from [Dave Syer](https://github.com/dsyer/kpack-with-kind) (thanks, Dave!).
-This starts a Kubernetes cluster and an image registry, both running in Docker on your local machine. The image registry is listening on `localhost:5000`.
 
-To use this setup script, run:
+To start a kind cluster with a local image registry, run the following command.
 ```shell
 # Start cluster and registry
 KIND_VERSION=v1.22.4 ./kind/kind-setup.sh
 ```
+This starts a Kubernetes cluster and an image registry, both running in Docker on your local machine. The image registry is listening on `localhost:5000`.
+
+> Credit for the above script goes to [Dave Syer](https://github.com/dsyer/kpack-with-kind) (thanks, Dave!)
 
 ## Install & configure dependencies
 
-Put on your Platform Operator hat and begin by installing a set of Kubernetes-native CI/CD tools capable of running specialize CI/CD activities. Specifically, you will install:
+Put on your Platform Operator hat and begin by installing a set of Kubernetes-native CI/CD tools capable of running specialized CI/CD activities. Specifically, you will install:
 - **_Fluxcd Source Controller_**: to detect changes in a git repository
 - **_Tekton_**: for running tasks (e.g. testing the application)
 - **_Kpack_**: for building an publishing container images
 - **_Kapp Controller_**: for managing related sets of resources
 - **_Knative_**: for facilitating serving of applications
 
-You will also install **_cartographer_** and a **_cert-manager_** that it uses.
+You will also install **_cartographer_** and an accompanying **_cert-manager_**.
 
-You can see the complete list of tools that will be installed by checking the [vendir.yml](vendir.yml) file (under `directories.path: infra-ops/base-vendir`).
+You can see the complete list of tools that will be installed by checking the [vendir.yml](vendir.yml) file (under `directories.path: infra/base-vendir`).
 
 #### Create shared secret and service account
 
@@ -74,7 +75,7 @@ A couple of these tools (specifically, _kpack_ and _kapp controller_) require ac
 Create a Secret and ServiceAccount for these tools to use:
 ```shell
 # Create common secret and service account for registry push/pull access
-ytt -f infra-ops/base-common | kapp deploy --yes -a cicd-creds -f-
+ytt -f infra/base-common | kapp deploy --yes -a cicd-creds -f-
 ```
 
 > **Note:**
@@ -84,7 +85,7 @@ ytt -f infra-ops/base-common | kapp deploy --yes -a cicd-creds -f-
 > To avoid the risk of exposing your password or access token, use environment variable _YTT_registry__password_ to specify your password.
 > Add these as arguments to the command above:
 > 
-> `ytt -f infra-ops/base-common --data-values-file values-overrides.yaml --data-values-env YTT | kapp ...`
+> `ytt -f infra/base-common --data-values-file values-overrides.yaml --data-values-env YTT | kapp ...`
 
 #### Install dependencies
 
@@ -145,7 +146,20 @@ kapp inspect -a cartographer
 
 ### Example 1
 
-Coming soon...
+
+At minimum, to deploy an application to Kubernetes you need to build a container image, store the image in a registry that Kubernetes can access, and create a deployment and service in Kubernetes.
+
+In this example you will review and run a supply chain that orchestrates these basic activities.
+
+To build the container image in this example, we will use [kpack].
+
+Ideally
+
+
+
+
+To create Deployment and Service resources for our app, will manually create the necessary resources and have them applied to the cluster.
+
 
 ### Example 2 
 
