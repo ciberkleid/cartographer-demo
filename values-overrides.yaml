@@ -1,0 +1,12 @@
+# This file is intended to specify custom values.
+# Provide as an argument to ytt using arg --data-values-file
+# e.g. ytt --data-values-file values-overrides.yaml -f <YAML files>
+
+image_prefix: ciberkleid/cartographer-demo-
+
+registry:
+  server: https://index.docker.io/v1/
+  username: ciberkleid
+  # Can also set password using env var YTT_registry__password
+  # e.g. ytt --data-values-env YTT -f <YAML files>
+  password:

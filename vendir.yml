@@ -7,10 +7,18 @@ directories:
       - path: cartographer-repo
         git:
           url: https://github.com/vmware-tanzu/cartographer
-          ref: ksvc-explicit-serviceaccount
+          ref: main
         includePaths:
           - examples/source-to-knative-service/**
-  - path: infra/base-vendir
+  - path: kind
+    contents:
+      - path: .
+        git:
+          url: https://github.com/dsyer/kpack-with-kind
+          ref: main
+        includePaths:
+          - kind-setup.sh
+  - path: infra-ops/base-vendir
     contents:
       - path: cert-manager
         githubRelease:

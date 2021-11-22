@@ -1,0 +1,8 @@
+#@data/values
+
+#! This file is intended to specify default values. To override, use:
+#! - a separate values file (ytt --data-values-file my-values.yaml ...)
+
+---
+image_prefix: registry.local:5000/cartographer-demo/
+
