@@ -1,0 +1,40 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - git:
+      commitTitle: 'Bug Fix: Selectors look in own namespace (#363)...'
+      sha: 6098ac9ba25c6a96662dd6a1697f76ef5b60e0bc
+      tags:
+      - v0.0.8-rc.3-12-g6098ac9
+    path: cartographer-repo
+  path: examples-vendir
+- contents:
+  - git:
+      commitTitle: Add clarification on hostname
+      sha: 7893e4e1d0f4f344862dff9427ce424f5c4df796
+    path: .
+  path: kind
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/jetstack/cert-manager/releases/52450067
+    path: cert-manager
+  - githubRelease:
+      url: https://api.github.com/repos/vmware-tanzu/cartographer/releases/53389298
+    path: cartographer
+  - githubRelease:
+      url: https://api.github.com/repos/tektoncd/pipeline/releases/53655535
+    path: tekton
+  - githubRelease:
+      url: https://api.github.com/repos/pivotal/kpack/releases/52946001
+    path: kpack
+  - githubRelease:
+      url: https://api.github.com/repos/fluxcd/source-controller/releases/53242886
+    path: gitops-toolkit
+  - githubRelease:
+      url: https://api.github.com/repos/vmware-tanzu/carvel-kapp-controller/releases/53486936
+    path: kapp-controller
+  - githubRelease:
+      url: https://api.github.com/repos/knative/serving/releases/50020262
+    path: knative-serving
+  path: infra/base-vendir
+kind: LockConfig
