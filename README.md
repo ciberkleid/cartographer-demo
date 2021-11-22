@@ -146,20 +146,7 @@ kapp inspect -a cartographer
 
 ### Example 1
 
-
-At minimum, to deploy an application to Kubernetes you need to build a container image, store the image in a registry that Kubernetes can access, and create a deployment and service in Kubernetes.
-
-In this example you will review and run a supply chain that orchestrates these basic activities.
-
-To build the container image in this example, we will use [kpack].
-
-Ideally
-
-
-
-
-To create Deployment and Service resources for our app, will manually create the necessary resources and have them applied to the cluster.
-
+Coming soon...
 
 ### Example 2 
 
