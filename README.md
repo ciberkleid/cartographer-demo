@@ -178,18 +178,23 @@ You now have the infrastructure in place to design the path to production for yo
 
 Now it's time to put on your DevOps hat and think about the activities needed to deploy an application to Kubernetes.
 
-At minimum, you need to build a container image, store the image in a registry, and create Deployment and Service resources in Kubernetes.
+At minimum, you need to detect source code changes, build a container image, store the image in a registry, and create Deployment and Service resources in Kubernetes.
 
 If you were doing this manually, you could accomplish this by creating:
 - a `kpack` Image resource (polls git, builds & publishes image)
 - a Deployment resource
 - a Service resource
 
-Rather than have development teams create these three resources for each application, Cartographer enables you to define these once as templates, so that developers need only specify the value(s) uniue to their applications.
+Rather than have development teams create these three resources for each application, Cartographer enables you to define these once as templates, so that developers need only specify the value(s) unique to their applications.
 Cartographer will then interpolate the values and create resources for each application.
 
 In addition, even if you were to create the necessary resources, you would still need a mechanism to trigger the deployment when a new image is ready.
 Here again Cartographer can fill the gap, passing the output from the `kpack` Image to the Deployment.
+
+_There is one caveat:_
+Cartographer requires a separate source-resolver to initiate a supply chain.
+It does not use kpack's built-in source resolver.
+Thus, we will also leverage Fluxcd Source Resolver, in addition to kpack.
 
 ###### Template supply chain activities
 
