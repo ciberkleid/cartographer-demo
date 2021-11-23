@@ -1,0 +1,5 @@
+#@data/values
+
+---
+image_prefix: registry.local:5000/cartographer-demo/example-1-
+

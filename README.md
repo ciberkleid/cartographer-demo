@@ -174,7 +174,126 @@ You now have the infrastructure in place to design the path to production for yo
 
 ### Example 1
 
-Coming soon...
+#### DevOps: Create the supply chain
+
+Now it's time to put on your DevOps hat and think about the activities needed to deploy an application to Kubernetes.
+
+At minimum, you need to build a container image, store the image in a registry, and create Deployment and Service resources in Kubernetes.
+
+If you were doing this manually, you could accomplish this by creating:
+- a `kpack` Image resource (polls git, builds & publishes image)
+- a Deployment resource
+- a Service resource
+
+Rather than have development teams create these three resources for each application, Cartographer enables you to define these once as templates, so that developers need only specify the value(s) uniue to their applications.
+Cartographer will then interpolate the values and create resources for each application.
+
+In addition, even if you were to create the necessary resources, you would still need a mechanism to trigger the deployment when a new image is ready.
+Here again Cartographer can fill the gap, passing the output from the `kpack` Image to the Deployment.
+
+###### Template supply chain activities
+
+Examine the template for the `kpack` Image.
+```shell
+cat examples/example-1/01-devops/image-template.yaml
+```
+
+Notice the resource type (`kind: ClusterImageTemplate`).
+This resource is an abstraction provided by cartographer.
+Notice also that it embeds a kpack Image resource type.
+You could choose a different mechanism for building images by embedding a different resource within the ClusterImageTemplate.
+
+Finally, notice that certain inputs are templated (e.g. `$(workload.metadata.name)$`).
+This is evidence of the choreography that cartographer enables by passing outputs of one cartographer resource as inputs to another.
+In this case, cartographer is passing outputs of a Workload resource, which will be defined by a developer for a specific application, to the Image template.
+
+Examine the Deployment and Service templates and notice the same characteristics.
+```shell
+cat examples/example-1/01-devops/deployment-template.yaml
+cat examples/example-1/01-devops/service-template.yaml
+```
+
+In this case, notice that the top-level cartographer resource is `kind: ClusterTemplate`.
+Notice also that the output of the ClusterImageTemplate is passed to the Deployment container image tag (`image: $(images.image.image)$`).
+
+
+Create the supply chain.
+```shell
+ytt -f examples/example-1/01-devops | kapp deploy --yes -a supply-chain-1 -f-
+```
+
+###### Compose supply chain from templates
+
+Now that you have reusable templates defined for each activity, you can compose them into a supply chain.
+
+Examine the template for the `kpack` Image.
+```shell
+cat examples/example-1/01-devops/_supply-chain.yaml
+```
+
+Notice the top-level cartographer resource ().
+Notice also the mapping of the image output as an input to the deployment.
+_Hint:_ look for the following lines in the file:
+```
+      images:
+        - resource: image-builder
+          name: image
+```
+
+#### Developer: Deploy an application
+
+Now put on your Developer hat: it's time to deploy an application.
+
+Cartographer provides a Workload resource to enable developers to provide the configuration that is unique to an application.
+This configuration serves as input to the supply chain templates.
+
+Examine a workload for a simple Go application:
+```shell
+cat examples/example-1/02-developer/workload-go.yaml
+```
+Notice the workload `metadata.labels.app.tanzu.vmware.com/workload-type` matches the `spec.selector.app.tanzu.vmware.com/workload-type` of the supply chain.
+This enables cartographer to match the workload to the supply chain.
+
+Apply the workload to the cluster.
+```shell
+kubectl apply -f examples/example-1/02-developer/workload-go.yaml
+```
+
+Track the progress using [stern].
+You should see logging from two pods:
+   - kpack's build pod, where the app image is built
+   - the app pod, once the deployment has been created
+> **Note:** Use `Ctrl+C` to quit stern when you see the logging from the workload container in the application pod.
+```shell
+# Tail the pod logs
+stern hello-golang
+```
+
+You can also explicitly check for the resources created by the supply chain:
+```shell
+kubectl get workload,gitrepo,image,build,deploy,pod,service
+```
+
+You can also test the application.
+In one terminal winow, run:
+```shell
+kubectl port-forward svc/hello-golang 8080:80
+```
+
+In a another terminal window, run:
+```shell
+curl localhost:8080
+```
+
+You should receive a `Hello World!` response to the request.
+
+You can quit the port-forward process using `Ctrl+C`.
+
+Delete the workload and the supply chain.
+```shell
+kubectl delete workload hello-golang
+kapp delete --yes -a supply-chain-1
+```
 
 ### Example 2 
 
@@ -188,3 +307,4 @@ Coming soon...
 [Carvel]: https://carvel.dev
 [Carvel demo]: https://github.com/ciberkleid/carvel-demo
 [kpack]: https://github.com/pivotal/kpack
+[stern]: https://github.com/wercker/stern
