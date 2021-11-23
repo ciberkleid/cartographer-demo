@@ -5,7 +5,7 @@ vendir sync
 KIND_VERSION=v1.22.4 ./kind/kind-setup.sh
 
 # Create common secret and service account for registry push/pull access
-ytt -f infra/base-common | kapp deploy --yes -a cicd-creds -f-
+ytt -f infra/base-creds | kapp deploy --yes -a cicd-creds -f-
 
 # Install CI/CD tooling
 ytt -f infra/base-vendir/cert-manager | kapp deploy --yes -a cert-manager -f-

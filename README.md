@@ -75,7 +75,7 @@ A couple of these tools (specifically, _kpack_ and _kapp controller_) require ac
 Create a Secret and ServiceAccount for these tools to use:
 ```shell
 # Create common secret and service account for registry push/pull access
-ytt -f infra/base-common | kapp deploy --yes -a cicd-creds -f-
+ytt -f infra/base-creds | kapp deploy --yes -a cicd-creds -f-
 ```
 
 > **Note:**
@@ -85,7 +85,7 @@ ytt -f infra/base-common | kapp deploy --yes -a cicd-creds -f-
 > To avoid the risk of exposing your password or access token, use environment variable _YTT_registry__password_ to specify your password.
 > Add these as arguments to the command above:
 > 
-> `ytt -f infra/base-common --data-values-file values-overrides.yaml --data-values-env YTT | kapp ...`
+> `ytt -f infra/base-creds --data-values-file values-overrides.yaml --data-values-env YTT | kapp ...`
 
 #### Install dependencies
 
@@ -137,6 +137,34 @@ For example, run:
 # Inspect a kapp-deployed application
 kapp inspect -a cartographer
 ```
+
+Notice that the `kpack` configuration included the creation of a builder capable of building images for several types of applications. You can see the configuration in [infra/overlay/kpack/kpack.yaml](infra/overlay/kpack).
+This configuration instructs kpack to build an image and publish it to the container registry, so it can be used to build applications.
+You can verify that the image is ready and that it is available in the registry by running the following commands.
+```shell
+# Check status of builder resource
+kubectl get clusterbuilder builder
+```
+The output should look something like this:
+```
+$ kubectl get clusterbuilder builder
+NAME      LATESTIMAGE                                                                                                             READY
+builder   registry.local:5000/cartographer-demo/builder@sha256:ceeebe78832f9d97e8f74b4585159198f57d9388e65f2319c59b544632b3ba87   True
+````
+
+You can also verify the image was published to the registry.
+```shell
+# Check image in registry
+curl localhost:5000/v2/cartographer-demo/builder/tags/list
+```
+
+The output should look something like this:
+```
+$ curl localhost:5000/v2/cartographer-demo/builder/tags/list
+{"name":"cartographer-demo/builder","tags":["20211123024750","latest"]}
+```
+
+You now have the infrastructure in place to design the path to production for your applications.
 
 > **Note:**
 > 
