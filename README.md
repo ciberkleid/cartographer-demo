@@ -264,6 +264,10 @@ Apply the workload to the cluster.
 kubectl apply -f examples/example-1/02-developer/workload-go.yaml
 ```
 
+> Note:
+> 
+> You can also use `kapp deploy...` to apply the workload, but in the case of workloads, `kubectl get workloads` will give you a complete list of workloads, just as `kapp list` will give you a complete list of applications.
+
 Track the progress using [stern].
 You should see logging from two pods:
    - kpack's build pod, where the app image is built
@@ -279,8 +283,13 @@ You can also explicitly check for the resources created by the supply chain:
 kubectl get workload,gitrepo,image,build,deploy,pod,service
 ```
 
-You can also test the application.
-In one terminal winow, run:
+Since the deployment and service templates set a resource label using the workload name, you can also select resources based on the workload name:
+```shell
+kubectl get all --selector app.kubernetes.io/part-of=hello-golang
+```
+
+You can test the application.
+In one terminal window, run:
 ```shell
 kubectl port-forward svc/hello-golang 8080:80
 ```
@@ -294,17 +303,34 @@ You should receive a `Hello World!` response to the request.
 
 You can quit the port-forward process using `Ctrl+C`.
 
-Delete the workload and the supply chain.
+Try deploying a second workload. Review [workload-nodejs.yaml](workload-nodejs.yaml) and then apply it to the cluster.
 ```shell
+kubectl apply -f examples/example-1/02-developer/workload-nodejs.yaml
+kubectl get workloads
+kubectl get all --selector app.kubernetes.io/part-of=hello-nodejs
+```
+
+You can use `stern` and `kubectl port-forward` as above to follow the logs and test the app.
+
+The kpack builder configured during cluster setup supports applications written in Go, Java, and Node.js. 
+The supply chain configured in this example supports any app that listens on port 8080. 
+Feel free to test this with apps of your own that match these characteristics.
+
+Delete the workloads and the supply chain.
+```shell
+kubectl delete workload hello-nodejs
 kubectl delete workload hello-golang
 kapp delete --yes -a supply-chain-1
 ```
 
 ### Example 2 
 
+The previous example should already give you a sense for the power of cartographer.
+The DevOps team can own responsibility for configuring individual CI/CD tool resources in a way that is reusable across application types and development teams, and developers need only provide a few values unique to their workloads.
+
+In this example, you will create a more comprehensive supply chain that includes testing code before building the image, and leverages kapp and knative to deploy the application.
+
 Coming soon...
-
-
 
 
 [Cartographer]: https://cartographer.sh
