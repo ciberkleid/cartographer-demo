@@ -2,103 +2,159 @@
 
 ## Intro
 
-[Cartographer] is a Kubernetes-native solution that enables you to stitch together a series of activities for continuous integration (CI) and continuous deployment (CD) of your applications. These secure and reusable sequences are called _supply chains_.
+[Cartographer] is a Kubernetes-native solution that enables you to stitch together a series of activities for continuous integration (CI) and continuous deployment (CD) of your applications. 
+These secure and reusable sequences are called _supply chains_.
 
 Supply chains can specify any number of activities needed for CI/CD, such as testing code, building images, scanning artifacts, deploying resources, and triggering updates.
-Each activity must be carried out by a separate, specialized tool.
-Cartographer choreographs a supply chain by configuring the individual activities using your choice of CI/CD tools and passing the output of one as input to another.
+Cartographer choreographs a supply chain by monitoring the status of running activities and passing the output of one as input to trigger the next.
 
-By providing thoughtfully designed supply chain configuration APIs, Cartographer provides a unified and reusable way to manage the configuration of disparate CI/CD tools, and it enables a clean separation of concerns between cluster tooling (platform ops), supply chain definition (devops), and workload configuration (dev).
+The nitty-gritty of any given activity is carried out by a separate, specialized tool.
+Cartographer provides a unified way to manage the configuration of these disparate CI/CD tools through a set of [custom resources], including cluster-wide supply chains and namespace-scoped application workloads. 
+In this way, Cartographer enables a clean separation of concerns between cluster tooling (platform ops), supply chain definition (app ops, or devops), and workload configuration (dev).
 
 ## What's in this repo?
 
-This repo contains demos of Cartographer supply chains to deploy a hello-world demo application to Kubernetes.
-1. Simple supply chain that leverages:
-    - `kpack` to build and publish the image
-    - `kube API` to deploy
-2. More comprehensive supply chain that leverages:
-   - `source-resolver` to detect code commits
-   - `tekton` to test the app
-   - `kpack` to build and publish the image
-   - `kapp controller` to deploy
-   - `knative` to serve the app
+This repo contains examples of Cartographer supply chains to deploy applications to Kubernetes. 
+The examples provided begin with a very simple deployment workflow, and build up to a more robust path to production.
+
+The CI/CD activities included in the examples depend on a selection of tools.
+The chart below lists the activities, the tool you will be using to accomplish that activity, and the Kubernetes resources you will need to configure (both the CI/CD tool resource, and the corresponding Cartographer resource).
+
+| Activity | Tool | Tool Resource | Cartographer Resource |
+| --- | --- | --- | --- |
+| Detect source changes | fluxcd source controller | GitRepository | ClusterSourceTemplate |
+| Test code | tekton | Task | ClusterSourceTemplate, Runnable |
+| Build & publish image | kpack | Image | ClusterImageTemplate |
+| Run application (option 1) | kubernetes | Deployment | ClusterTemplate |
+| Expose application (option 1) | kubernetes | Service | ClusterTemplate |
+| Deploy application (option 2) | kapp controller | App, Config | ClusterTemplate |
+| Run and expose application (option 2) | knative | Service | ClusterTemplate |
+
+Sound like a lot?!
+Not to worry.
+The following sections will guide you through all the necessary steps, including:
+- Creating a local cluster and local image registry
+- Installing Cartographer
+- Installing additional required CI/CD tools
+- Creating supply chains
+- Deploying application workloads
 
 ## Prerequisites
 
-- [Carvel suite] installed locally (at minimum, `vendir`, `ytt`, and `kapp` are required)
-- Docker installed locally
-- Access to a Kubernetes cluster (see below to use `kind`)
-- Access to an image registry (see below to use a local registry)
+- [Carvel suite] (at minimum, `vendir`, `ytt`, and `kapp`)
+- [kind], to create a local cluster
+- Docker, to run the kind cluster and a local image registry
+  
+> **Note**
+> 
+> This demo includes a script to start a local kind cluster and a local image registry.
+> If you choose to use these, you can proceed to the next step.
+> 
+> If you prefer to use a different cluster and image registry, make sure that:
+>  - You have admin access to the cluster
+>  - The cluster is v1.19 or newer
+>  - Your kubernetes context is targeting your desired cluster
+>  - You have push access to the image registry
+>  - [values-overrides.yaml](values-overrides.yaml) is updated with your registry details and a sensible imagePrefix value
+ >   - Optional, but recommended: you can store your password in an environment variable called `YTT_registry__password` rather than in the file
 
-#### Download dependency files
-All dependencies are specified in the file [vendir.yml](vendir.yml).
-Feel free to peruse this file.
+## TL;DR Setup
 
-Download all dependency files: 
+To go through the cluster and CI/CD tool setup with some explanation, proceed to the next section.
+
+To set up the cluster and CI/CD tooling in one shot and skip straight to the examples, run the following script.
+> Note: if you are using your own cluster and registry, comment out the following line in the script:
+> 
+> `KIND_VERSION=v1.22.4 ./kind/kind-setup.sh`
+```shell
+# Create cluster, install & configure dependencies
+./infra_install.sh
+```
+
+## Set up cluster and registry
+
+To start a cluster and registry locally using docker, run the following commands:
+```shell
+# Start cluster and registry
+vendir sync -d kind                         # Downloads kind-setup.sh script
+KIND_VERSION=v1.22.4 ./kind/kind-setup.sh   # Creates cluster and registry
+```
+
+You can run the following commands to validate that the cluster and registry are up and running:
+```shell
+# Check cluster and registry
+kind get nodes            # should return: "kind-control-plane"
+curl localhost:5000/v2/   # should return: "{}"
+```
+
+> Credit for the above script goes to [Dave Syer](https://github.com/dsyer/kpack-with-kind) (thanks, Dave!)
+
+## Install & configure CI/CD tools
+
+Put on your Platform Operator hat and begin by installing a set of Kubernetes-native CI/CD tools capable of running specialized CI/CD activities. As per the table above, you will install:
+- **_Fluxcd Source Controller_**: to detect changes in a git repository
+- **_Tekton_**: for running tasks (e.g. testing the application)
+- **_Kpack_**: for building and publishing container images
+- **_Kapp Controller_**: for managing related sets of resources
+- **_Knative_**: for facilitating serving of applications
+
+You will also install **_Cartographer_** and an accompanying **_Cert Manager_**.
+
+You can see the complete list of tools that will be installed by checking the [vendir.yml](vendir.yml) file, under `directories.path: infra/base-vendir`.
+
+#### Download installation files
+
+Download all dependency installation files: 
 ```shell
 # Download dependency files
 vendir sync
 ```
 
+You should see the following files on your machine:
+```shell
+$ tree infra/base-vendir
+infra/base-vendir
+├── cartographer
+│   └── cartographer.yaml
+├── cert-manager
+│   └── cert-manager.yaml
+├── gitops-toolkit
+│   ├── source-controller.crds.yaml
+│   └── source-controller.deployment.yaml
+├── kapp-controller
+│   └── release.yml
+├── knative-serving
+│   ├── serving-core.yaml
+│   └── serving-crds.yaml
+├── kpack
+│   └── release-0.4.2.yaml
+└── tekton
+    └── release.yaml
+```
+
 > **Note:**
-> 
 > To use a newer version of any dependency, change the version in [vendir.yml](vendir.yml) and re-run `vendir sync`.
 
-#### Create cluster and registry
+#### Review additional configuration files
 
-To start a kind cluster with a local image registry, run the following command.
-```shell
-# Start cluster and registry
-KIND_VERSION=v1.22.4 ./kind/kind-setup.sh
-```
-This starts a Kubernetes cluster and an image registry, both running in Docker on your local machine. The image registry is listening on `localhost:5000`.
+The [infra/base-creds](infra/base-creds) directory contains configuration to create a Secret and ServiceAccount with push/pull access to the image registry.
+Both kpack and kapp controller will use this ServiceAccount.
 
-> Credit for the above script goes to [Dave Syer](https://github.com/dsyer/kpack-with-kind) (thanks, Dave!)
-
-## Install & configure dependencies
-
-Put on your Platform Operator hat and begin by installing a set of Kubernetes-native CI/CD tools capable of running specialized CI/CD activities. Specifically, you will install:
-- **_Fluxcd Source Controller_**: to detect changes in a git repository
-- **_Tekton_**: for running tasks (e.g. testing the application)
-- **_Kpack_**: for building an publishing container images
-- **_Kapp Controller_**: for managing related sets of resources
-- **_Knative_**: for facilitating serving of applications
-
-You will also install **_cartographer_** and an accompanying **_cert-manager_**.
-
-You can see the complete list of tools that will be installed by checking the [vendir.yml](vendir.yml) file (under `directories.path: infra/base-vendir`).
-
-#### Create shared secret and service account
-
-A couple of these tools (specifically, _kpack_ and _kapp controller_) require access to push and/or pull images from the image registry.
-
-Create a Secret and ServiceAccount for these tools to use:
-```shell
-# Create common secret and service account for registry push/pull access
-ytt -f infra/base-creds | kapp deploy --yes -a cicd-creds -f-
-```
-
-> **Note:**
-> 
-> If you are not using the local registry, you need to provide your on credentials hen creating the Secret.
-> To do so, edit the file [values-overrides.yaml](values-overrides.yaml) to specify your registry details.
-> To avoid the risk of exposing your password or access token, use environment variable _YTT_registry__password_ to specify your password.
-> Add these as arguments to the command above:
-> 
-> `ytt -f infra/base-creds --data-values-file values-overrides.yaml --data-values-env YTT | kapp ...`
+The [infra/overlay](infra/overlay) directory contains supplemental configuration, mostly namespace, role, and rolebinding resources.
+In the case of kpack, it also contains configuration to create a ClusterBuilder that can be used in all supply chains to build images ([infra/overlay/kpack/kpack.yaml](infra/overlay/kpack/kpack.yaml)).
 
 #### Install dependencies
 
-Install all depenencies.
-
-For convenience, a script is provided.
-Run the following command, or open the script and copy one command at a time to your terminal to follow the results at your own pace.
+For convenience, a script is included to install all dependencies at once.
+Run the following command, or open the script and copy one command at a time to your terminal to follow the progress at your own pace.
 ```shell
 # Install dependencies
 ./infra_install.sh
 ```
 
-When this command completes, you will have all of the above tools installed in your cluster.
+#### Validate installation
+
+When the above command completes, you will have all the above tools installed in your cluster.
 You can verify the installations by running the following command:
 ```shell
 # Verify dependencies installation
@@ -131,16 +187,19 @@ Lca: Last Change Age
 Succeeded
 ```
 
-You can get more detail about any one of the tools installed using `kapp insepct...`
+You can get more detail about any one of the applications using `kapp inspect...`
 For example, run:
 ```shell
 # Inspect a kapp-deployed application
 kapp inspect -a cartographer
 ```
 
-Notice that the `kpack` configuration included the creation of a builder capable of building images for several types of applications. You can see the configuration in [infra/overlay/kpack/kpack.yaml](infra/overlay/kpack).
-This configuration instructs kpack to build an image and publish it to the container registry, so it can be used to build applications.
-You can verify that the image is ready and that it is available in the registry by running the following commands.
+#### Validate kpack configuration
+
+The kpack overlay configuration ([infra/overlay/kpack/kpack.yaml](infra/overlay/kpack)) instructed kpack to create and publish a [builder] to the image registry.
+This builder can be used to build application images.
+
+Verify that the builder is ready.
 ```shell
 # Check status of builder resource
 kubectl get clusterbuilder builder
@@ -152,7 +211,7 @@ NAME      LATESTIMAGE                                                           
 builder   registry.local:5000/cartographer-demo/builder@sha256:ceeebe78832f9d97e8f74b4585159198f57d9388e65f2319c59b544632b3ba87   True
 ````
 
-You can also verify the image was published to the registry.
+Verify that the builder is in the image registry.
 ```shell
 # Check image in registry
 curl localhost:5000/v2/cartographer-demo/builder/tags/list
@@ -164,178 +223,25 @@ $ curl localhost:5000/v2/cartographer-demo/builder/tags/list
 {"name":"cartographer-demo/builder","tags":["20211123024750","latest"]}
 ```
 
+<hr />
+
 You now have the infrastructure in place to design the path to production for your applications.
 
 > **Note:**
 > 
 > If you would like to learn more about the Carvel CLIs used in the [infra_install.sh](infra_install.sh) script (`vendir`, `ytt`, and `kapp`), check out [Carvel] or this [Carvel demo].
 
-## Examples
-
-### Example 1
-
-#### DevOps: Create the supply chain
-
-Now it's time to put on your DevOps hat and think about the activities needed to deploy an application to Kubernetes.
-
-At minimum, you need to detect source code changes, build a container image, store the image in a registry, and create Deployment and Service resources in Kubernetes.
-
-If you were doing this manually, you could accomplish this by creating:
-- a `kpack` Image resource (polls git, builds & publishes image)
-- a Deployment resource
-- a Service resource
-
-Rather than have development teams create these three resources for each application, Cartographer enables you to define these once as templates, so that developers need only specify the value(s) unique to their applications.
-Cartographer will then interpolate the values and create resources for each application.
-
-In addition, even if you were to create the necessary resources, you would still need a mechanism to trigger the deployment when a new image is ready.
-Here again Cartographer can fill the gap, passing the output from the `kpack` Image to the Deployment.
-
-_There is one caveat:_
-Cartographer requires a separate source-resolver to initiate a supply chain.
-It does not use kpack's built-in source resolver.
-Thus, we will also leverage Fluxcd Source Resolver, in addition to kpack.
-
-###### Template supply chain activities
-
-Examine the template for the `kpack` Image.
-```shell
-cat examples/example-1/01-devops/image-template.yaml
-```
-
-Notice the resource type (`kind: ClusterImageTemplate`).
-This resource is an abstraction provided by cartographer.
-Notice also that it embeds a kpack Image resource type.
-You could choose a different mechanism for building images by embedding a different resource within the ClusterImageTemplate.
-
-Finally, notice that certain inputs are templated (e.g. `$(workload.metadata.name)$`).
-This is evidence of the choreography that cartographer enables by passing outputs of one cartographer resource as inputs to another.
-In this case, cartographer is passing outputs of a Workload resource, which will be defined by a developer for a specific application, to the Image template.
-
-Examine the Deployment and Service templates and notice the same characteristics.
-```shell
-cat examples/example-1/01-devops/deployment-template.yaml
-cat examples/example-1/01-devops/service-template.yaml
-```
-
-In this case, notice that the top-level cartographer resource is `kind: ClusterTemplate`.
-Notice also that the output of the ClusterImageTemplate is passed to the Deployment container image tag (`image: $(images.image.image)$`).
-
-
-Create the supply chain.
-```shell
-ytt -f examples/example-1/01-devops | kapp deploy --yes -a supply-chain-1 -f-
-```
-
-###### Compose supply chain from templates
-
-Now that you have reusable templates defined for each activity, you can compose them into a supply chain.
-
-Examine the template for the `kpack` Image.
-```shell
-cat examples/example-1/01-devops/_supply-chain.yaml
-```
-
-Notice the top-level cartographer resource ().
-Notice also the mapping of the image output as an input to the deployment.
-_Hint:_ look for the following lines in the file:
-```
-      images:
-        - resource: image-builder
-          name: image
-```
-
-#### Developer: Deploy an application
-
-Now put on your Developer hat: it's time to deploy an application.
-
-Cartographer provides a Workload resource to enable developers to provide the configuration that is unique to an application.
-This configuration serves as input to the supply chain templates.
-
-Examine a workload for a simple Go application:
-```shell
-cat examples/example-1/02-developer/workload-go.yaml
-```
-Notice the workload `metadata.labels.app.tanzu.vmware.com/workload-type` matches the `spec.selector.app.tanzu.vmware.com/workload-type` of the supply chain.
-This enables cartographer to match the workload to the supply chain.
-
-Apply the workload to the cluster.
-```shell
-kubectl apply -f examples/example-1/02-developer/workload-go.yaml
-```
-
-> Note:
-> 
-> You can also use `kapp deploy...` to apply the workload, but in the case of workloads, `kubectl get workloads` will give you a complete list of workloads, just as `kapp list` will give you a complete list of applications.
-
-Track the progress using [stern].
-You should see logging from two pods:
-   - kpack's build pod, where the app image is built
-   - the app pod, once the deployment has been created
-> **Note:** Use `Ctrl+C` to quit stern when you see the logging from the workload container in the application pod.
-```shell
-# Tail the pod logs
-stern hello-golang
-```
-
-You can also explicitly check for the resources created by the supply chain:
-```shell
-kubectl get workload,gitrepo,image,build,deploy,pod,service
-```
-
-Since the deployment and service templates set a resource label using the workload name, you can also select resources based on the workload name:
-```shell
-kubectl get all --selector app.kubernetes.io/part-of=hello-golang
-```
-
-You can test the application.
-In one terminal window, run:
-```shell
-kubectl port-forward svc/hello-golang 8080:80
-```
-
-In a another terminal window, run:
-```shell
-curl localhost:8080
-```
-
-You should receive a `Hello World!` response to the request.
-
-You can quit the port-forward process using `Ctrl+C`.
-
-Try deploying a second workload. Review [workload-nodejs.yaml](workload-nodejs.yaml) and then apply it to the cluster.
-```shell
-kubectl apply -f examples/example-1/02-developer/workload-nodejs.yaml
-kubectl get workloads
-kubectl get all --selector app.kubernetes.io/part-of=hello-nodejs
-```
-
-You can use `stern` and `kubectl port-forward` as above to follow the logs and test the app.
-
-The kpack builder configured during cluster setup supports applications written in Go, Java, and Node.js. 
-The supply chain configured in this example supports any app that listens on port 8080. 
-Feel free to test this with apps of your own that match these characteristics.
-
-Delete the workloads and the supply chain.
-```shell
-kubectl delete workload hello-nodejs
-kubectl delete workload hello-golang
-kapp delete --yes -a supply-chain-1
-```
-
-### Example 2 
-
-The previous example should already give you a sense for the power of cartographer.
-The DevOps team can own responsibility for configuring individual CI/CD tool resources in a way that is reusable across application types and development teams, and developers need only provide a few values unique to their workloads.
-
-In this example, you will create a more comprehensive supply chain that includes testing code before building the image, and leverages kapp and knative to deploy the application.
+## Supply Chain Examples
 
 Coming soon...
 
 
 [Cartographer]: https://cartographer.sh
 [Carvel suite]: https://carvel.dev/#whole-suite
+[kind]: https://kind.sigs.k8s.io/docs/user/quick-start/#installation
 [Carvel]: https://carvel.dev
 [Carvel demo]: https://github.com/ciberkleid/carvel-demo
 [kpack]: https://github.com/pivotal/kpack
+[builder]: https://buildpacks.io/docs/concepts/components/builder
 [stern]: https://github.com/wercker/stern
+[custom resources]: https://cartographer.sh/docs/reference/#resources
