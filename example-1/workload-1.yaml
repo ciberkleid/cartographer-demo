@@ -1,0 +1,13 @@
+apiVersion: carto.run/v1alpha1
+kind: Workload
+metadata:
+  name: workload-1-nginx
+  labels:
+    app.tanzu.vmware.com/workload-type: web-container
+spec:
+  image: nginx
+  params:
+    - name: semver
+      value: '>=1.0.0'
+    - name: containerPort
+      value: 80

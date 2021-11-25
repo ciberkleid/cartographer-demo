@@ -1,0 +1,18 @@
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  name: image-repository
+spec:
+  urlPath: .status.canonicalImageName
+  revisionPath: .status.canonicalImageName
+  template:
+    apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImageRepository
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      image: $(workload.spec.image)$
+      interval:  3m

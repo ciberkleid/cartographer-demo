@@ -1,0 +1,22 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterImageTemplate
+metadata:
+  name: image-policy
+spec:
+  imagePath: .status.latestImage
+  params:
+    - name: semver
+      default: '>=1.0.0'
+  template:
+    apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImagePolicy
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      imageRepositoryRef:
+        name: $(workload.metadata.name)$
+      policy:
+        semver:
+          range: $(params.semver)$

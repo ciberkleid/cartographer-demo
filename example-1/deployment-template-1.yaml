@@ -1,0 +1,37 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterTemplate
+metadata:
+  name: app-deploy-deployment
+spec:
+  params:
+    - name: containerPort
+      default: 8080
+  template:
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/part-of: $(workload.metadata.name)$
+        spec:
+          containers:
+            - name: workload
+              image: #@ image_prefix + "$(images.image.image)$"
+              env: $(workload.spec.env)$
+              resources: $(workload.spec.resources)$
+              ports:
+                - name: http-port
+                  containerPort: $(params.containerPort)$
+              securityContext:
+                runAsUser: 1000
+      selector:
+        matchLabels:
+          app.kubernetes.io/part-of: $(workload.metadata.name)$
