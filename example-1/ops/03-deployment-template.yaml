@@ -1,6 +1,3 @@
-#@ load("@ytt:data", "data")
-
----
 apiVersion: carto.run/v1alpha1
 kind: ClusterTemplate
 metadata:
@@ -24,14 +21,12 @@ spec:
         spec:
           containers:
             - name: workload
-              image: #@ image_prefix + "$(images.image.image)$"
+              image: $(images.image.image)$
               env: $(workload.spec.env)$
               resources: $(workload.spec.resources)$
               ports:
                 - name: http-port
                   containerPort: $(params.containerPort)$
-              securityContext:
-                runAsUser: 1000
       selector:
         matchLabels:
           app.kubernetes.io/part-of: $(workload.metadata.name)$

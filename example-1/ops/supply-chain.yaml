@@ -1,10 +1,11 @@
 apiVersion: carto.run/v1alpha1
 kind: ClusterSupplyChain
 metadata:
-  name: supplychain-1
+  name: supplychain-web-image
 spec:
   selector:
-    app.tanzu.vmware.com/workload-type: web-container
+    app.tanzu.vmware.com/workload-type: web-image
+
   resources:
 
     - name: source-provider
@@ -16,12 +17,12 @@ spec:
       templateRef:
         kind: ClusterImageTemplate
         name: image-policy
-#      params:
-#        - name: semver
-#          value: '>=1.0.0'
       sources:
         - resource: source-provider
           name: source
+#      params:
+#        - name: semver
+#          value: '>=1.0.0'
 
     - name: deployer-deployment
       templateRef:
@@ -32,7 +33,7 @@ spec:
           name: image
 #      params:
 #        - name: containerPort
-#          value: 8080
+#          value: 80
 
     - name: deployer-service
       templateRef:
@@ -40,4 +41,4 @@ spec:
         name: app-deploy-service
 #      params:
 #        - name: containerPort
-#          value: 8080
+#          value: 80

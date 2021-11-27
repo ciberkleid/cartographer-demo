@@ -36,11 +36,11 @@ directories:
           tag: v0.4.2
           assetNames: ["release-0.4.2.yaml"]
           disableAutoChecksumValidation: true
-      - path: gitops-toolkit
+      - path: flux2
         githubRelease:
-          slug: fluxcd/source-controller
-          tag: v0.18.0
-          assetNames: ["source-controller.crds.yaml", "source-controller.deployment.yaml"]
+          slug: fluxcd/flux2
+          tag: v0.24.0
+          assetNames: ["install.yaml"]
           disableAutoChecksumValidation: true
       - path: kapp-controller
         githubRelease:

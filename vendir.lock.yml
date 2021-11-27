@@ -20,8 +20,8 @@ directories:
       url: https://api.github.com/repos/pivotal/kpack/releases/52946001
     path: kpack
   - githubRelease:
-      url: https://api.github.com/repos/fluxcd/source-controller/releases/53242886
-    path: gitops-toolkit
+      url: https://api.github.com/repos/fluxcd/flux2/releases/53988003
+    path: flux2
   - githubRelease:
       url: https://api.github.com/repos/vmware-tanzu/carvel-kapp-controller/releases/53486936
     path: kapp-controller
