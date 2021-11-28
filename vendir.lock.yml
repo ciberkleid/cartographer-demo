@@ -5,7 +5,7 @@ directories:
       commitTitle: Add clarification on hostname
       sha: 7893e4e1d0f4f344862dff9427ce424f5c4df796
     path: .
-  path: kind
+  path: infra-cluster
 - contents:
   - githubRelease:
       url: https://api.github.com/repos/jetstack/cert-manager/releases/52450067
@@ -28,5 +28,5 @@ directories:
   - githubRelease:
       url: https://api.github.com/repos/knative/serving/releases/50020262
     path: knative-serving
-  path: infra/base-vendir
+  path: infra-platform/base-vendir
 kind: LockConfig

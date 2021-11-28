@@ -78,7 +78,7 @@ To go through the cluster and CI/CD tool setup with some explanation, proceed to
 To set up the cluster and CI/CD tooling in one shot and skip straight to the examples, run the following script.
 > **Note:** if you are using your own cluster and registry, comment out the following line in the script:
 > 
-> `KIND_VERSION=v1.22.4 ./kind/kind-setup.sh`
+> `KIND_VERSION=v1.22.4 ./infra-cluster/kind-setup.sh`
 ```shell
 # Create cluster, install & configure dependencies
 ./infra_install.sh
@@ -90,7 +90,7 @@ To start a cluster and registry locally using docker, run the following commands
 ```shell
 # Start cluster and registry
 vendir sync -d kind                         # Downloads kind-setup.sh script
-KIND_VERSION=v1.22.4 ./kind/kind-setup.sh   # Creates cluster and registry
+KIND_VERSION=v1.22.4 ./infra-cluster/kind-setup.sh   # Creates cluster and registry
 ```
 
 > _Credit for the above script goes to [Dave Syer](https://github.com/dsyer/kpack-with-kind) (thanks, Dave!)_
@@ -114,7 +114,7 @@ Put on your Platform Operator hat and begin by installing a set of Kubernetes-na
 
 You will also install **_Cartographer_** and an accompanying **_Cert Manager_**.
 
-You can see the complete list of tools that will be installed by checking the [vendir.yml](vendir.yml) file, under `directories.path: infra/base-vendir`.
+You can see the complete list of tools that will be installed by checking the [vendir.yml](vendir.yml) file, under `directories.path: infra-platform/base-vendir`.
 
 #### Download installation files
 
@@ -126,8 +126,8 @@ vendir sync
 
 You should see the following files on your machine:
 ```shell
-$ tree infra/base-vendir
-infra/base-vendir
+$ tree infra-platform/base-vendir
+infra-platform/base-vendir
 ├── cartographer
 │   └── cartographer.yaml
 ├── cert-manager
@@ -150,11 +150,11 @@ infra/base-vendir
 
 #### Review additional configuration files
 
-The [infra/base-creds](infra/base-creds) directory contains configuration to create a Secret and ServiceAccount with push/pull access to the image registry.
+The [infra-platform/base-creds](infra-platform/base-creds) directory contains configuration to create a Secret and ServiceAccount with push/pull access to the image registry.
 Both kpack and kapp controller will use this ServiceAccount.
 
-The [infra/overlay](infra/overlay) directory contains supplemental configuration.
-In the case of kpack, it includes configuration to create a ClusterBuilder that can be used in all supply chains to build images ([infra/overlay/kpack/kpack.yaml](infra/overlay/kpack/kpack.yaml)).
+The [infra-platform/overlay](infra-platform/overlay) directory contains supplemental configuration.
+In the case of kpack, it includes configuration to create a ClusterBuilder that can be used in all supply chains to build images ([infra-platform/overlay/kpack/kpack.yaml](infra-platform/overlay/kpack/kpack.yaml)).
 
 #### Install dependencies
 
@@ -209,7 +209,7 @@ kapp inspect -a cartographer
 
 #### Validate kpack configuration
 
-The kpack overlay configuration ([infra/overlay/kpack/kpack.yaml](infra/overlay/kpack)) instructed kpack to create and publish a [builder] to the image registry.
+The kpack overlay configuration ([infra-platform/overlay/kpack/kpack.yaml](infra-platform/overlay/kpack)) instructed kpack to create and publish a [builder] to the image registry.
 This builder can be used to build application images.
 
 Verify that the builder is ready.

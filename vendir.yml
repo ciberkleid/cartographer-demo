@@ -2,7 +2,7 @@ apiVersion: vendir.k14s.io/v1alpha1
 kind: Config
 minimumRequiredVersion: 0.8.0
 directories:
-  - path: kind
+  - path: infra-cluster
     contents:
       - path: .
         git:
@@ -10,7 +10,7 @@ directories:
           ref: main
         includePaths:
           - kind-setup.sh
-  - path: infra/base-vendir
+  - path: infra-platform/base-vendir
     contents:
       - path: cert-manager
         githubRelease:
