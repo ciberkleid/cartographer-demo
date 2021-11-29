@@ -1,0 +1,30 @@
+apiVersion: carto.run/v1alpha1
+kind: Workload
+metadata:
+  name: hello-knative
+  labels:
+    app.tanzu.vmware.com/workload-type: web-image-knative
+spec:
+  image: paulbouwer/hello-kubernetes
+  env:
+# Do not set "PORT" env var when using Knative serving
+# Knative will automatically set PORT using value of containerPort
+#    - name: PORT
+#      value: "8080"
+    - name: MESSAGE
+      value: "Hello, Knative!"
+# Setting env var using valueFrom.fieldRef not supported in Knative serving
+#    - name: KUBERNETES_NAMESPACE
+#      valueFrom:
+#        fieldRef:
+#          fieldPath: metadata.namespace
+#    - name: KUBERNETES_POD_NAME
+#      valueFrom:
+#        fieldRef:
+#          fieldPath: metadata.name
+#    - name: KUBERNETES_NODE_NAME
+#      valueFrom:
+#        fieldRef:
+#          fieldPath: spec.nodeName
+  resources: {}
+
