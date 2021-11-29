@@ -31,7 +31,17 @@ Deploy an existing image with mininmal additional CI/CD tools.
 | Expose application| Kubernetes | Service | ClusterTemplate |
 
 #### Example 2 preview
-Leverage additional CI/CD tools to get source code, test it, build & publish an image, and deploy using supplemental deployment and runtime tooling.
+Leverage kapp controller and Knative for deployment.
+
+| Activity | Tool | Tool Resource | Cartographer Resource |
+| --- | --- | --- | --- |
+| Detect image repo updates | Fluxcd | ImageRepository | ClusterSourceTemplate |
+| Select new image tag | Fluxcd | ImagePolicy | ClusterImageTemplate |
+| Deploy application | kapp controller | App, Config | ClusterTemplate |
+| Run and expose application | Knative | Service | ClusterTemplate |
+
+#### Example 3 preview
+Get source code from a git repo, test it, build and publish the image, then deploy.
 
 | Activity | Tool | Tool Resource | Cartographer Resource |
 | --- | --- | --- | --- |
@@ -90,11 +100,13 @@ To set up the cluster and CI/CD tooling in one shot and skip straight to the exa
 
 [Example 1 README](README-example-1.md)
 
-#### Example 2: Continuous integration & simplified continuous deployment
+#### Example 2: Continuous deployment with kapp controller and Knative
 
 [Example 2 README](README-example-2.md)
 
+#### Example 2: Continuous integration & continuous deployment
 
+Coming soon...
 
 
 
