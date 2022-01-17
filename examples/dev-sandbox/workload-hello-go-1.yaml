@@ -1,0 +1,22 @@
+apiVersion: carto.run/v1alpha1
+kind: Workload
+metadata:
+  labels:
+    # This label should match the desired ClusterSupplyChain's selector
+    apps.tanzu.vmware.com/workload-type: web2sandbox-1
+  name: hello-go-web2sandbox-1
+spec:
+  serviceAccountName: workload-service-account
+  source:
+    git:
+      url: https://github.com/ciberkleid/go-sample-app.git
+      ref:
+        branch: master
+  env:
+    - name: NAME
+      value: "Cartographer ninja"
+  params:
+    - name: containerPort
+      value: 8080
+    - name: language
+      value: golang

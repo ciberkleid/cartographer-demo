@@ -1,0 +1,130 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:struct", "struct")
+
+#@ def getFixedVersion(key):
+#@   versions = struct.decode(data.values.vendir.versions)
+#@   return versions[key]
+#@ end
+
+#! For more info on setting semver constraints, see:
+#!   https://carvel.dev/vendir/docs/latest/versions
+#!   https://github.com/blang/semver#ranges
+#@ def getVersion(key):
+#@   if data.values.vendir.getLatest:
+#@     return ">0.0.0"
+#@   else:
+#@     return getFixedVersion(key)
+#@   end
+#@ end
+
+---
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+minimumRequiredVersion: 0.8.0
+directories:
+
+  #! Product release files
+  - path: vendir/cert-manager
+    contents:
+      - path: .
+        githubRelease:
+          slug: jetstack/cert-manager
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("cert-manager")
+          assetNames: [ "cert-manager.yaml" ]
+          disableAutoChecksumValidation:
+            true
+  - path: vendir/secretgen-controller
+    contents:
+      - path: .
+        githubRelease:
+          slug: vmware-tanzu/carvel-secretgen-controller
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("secretgen-controller")
+          assetNames: ["release.yml"]
+          disableAutoChecksumValidation: true
+  - path: vendir/cartographer
+    contents:
+      - path: .
+        githubRelease:
+          slug: vmware-tanzu/cartographer
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("cartographer")
+          assetNames: ["cartographer.yaml"]
+          disableAutoChecksumValidation: true
+  - path: vendir/flux2
+    contents:
+      - path: .
+        githubRelease:
+          slug: fluxcd/flux2
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("flux2")
+          assetNames: ["install.yaml"]
+          disableAutoChecksumValidation: true
+  - path: vendir/kpack
+    contents:
+      - path: .
+        githubRelease:
+          slug: pivotal/kpack
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("kpack")
+          assetNames:
+            - #@ "release-*.yaml"
+          disableAutoChecksumValidation: true
+  - path: vendir/tekton-pipeline
+    contents:
+      - path: .
+        githubRelease:
+          slug: tektoncd/pipeline
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("tekton")
+          assetNames: ["release.yaml"]
+          disableAutoChecksumValidation: true
+  - path: vendir/tekton-catalog
+    contents:
+      - path: git-cli
+        http:
+          url: https://raw.githubusercontent.com/tektoncd/catalog/main/task/git-cli/0.3/git-cli.yaml
+
+  #! If not using tce package repo:
+  - path: vendir/kapp-controller
+    contents:
+      - path: .
+        githubRelease:
+          slug: vmware-tanzu/carvel-kapp-controller
+          tagSelection:
+            semver:
+              constraints: #@ getVersion("kapp-ctrl")
+          assetNames: ["release.yml"]
+          disableAutoChecksumValidation: true
+  - path: vendir/knative-serving
+    contents:
+      - path: .
+        githubRelease:
+          slug: knative/serving
+          #@ if data.values.vendir.getLatest:
+          latest: true
+          #@ else:
+          tag: #@ "knative-v" + getVersion("knative")
+          #@ end
+          assetNames: ["serving-crds.yaml", "serving-core.yaml"]
+          disableAutoChecksumValidation: true
+  #!  - path: vendir/contour-quickstart
+  #!    contents:
+  #!      - path: .
+  #!        http:
+  #!          url: https://projectcontour.io/quickstart/contour.yaml
+  #!  - path: vendir/net-contour
+  #!    contents:
+  #!      - path: .
+  #!        githubRelease:
+  #!          slug: knative-sandbox/net-contour
+  #!          tag: knative-v1.0.0
+  #!          assetNames: ["contour.yaml", "net-contour.yaml"]
+  #!          disableAutoChecksumValidation: true

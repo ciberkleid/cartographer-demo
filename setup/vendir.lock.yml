@@ -1,0 +1,47 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/jetstack/cert-manager/releases/52450067
+    path: .
+  path: vendir/cert-manager
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/vmware-tanzu/carvel-secretgen-controller/releases/53494171
+    path: .
+  path: vendir/secretgen-controller
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/vmware-tanzu/cartographer/releases/55563248
+    path: .
+  path: vendir/cartographer
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/fluxcd/flux2/releases/54991712
+    path: .
+  path: vendir/flux2
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/pivotal/kpack/releases/55222486
+    path: .
+  path: vendir/kpack
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/tektoncd/pipeline/releases/55318142
+    path: .
+  path: vendir/tekton-pipeline
+- contents:
+  - http: {}
+    path: git-cli
+  path: vendir/tekton-catalog
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/vmware-tanzu/carvel-kapp-controller/releases/53486936
+    path: .
+  path: vendir/kapp-controller
+- contents:
+  - githubRelease:
+      url: https://api.github.com/repos/knative/serving/releases/55248897
+    path: .
+  path: vendir/knative-serving
+kind: LockConfig

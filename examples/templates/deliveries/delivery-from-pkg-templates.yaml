@@ -1,0 +1,92 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  name: deliverable-image-repository
+spec:
+  urlPath: .status.canonicalImageName
+  revisionPath: .status.canonicalImageName
+  template:
+    apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImageRepository
+    metadata:
+      name: $(deliverable.metadata.name)$-deliverable
+      labels:
+        app.kubernetes.io/part-of: $(deliverable.metadata.name)$-deliverable
+    spec:
+      secretRef:
+        name: registry-credentials
+      image: $(params.tagPrefix)$$(deliverable.spec.source.image)$
+      interval:  10m
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  name: deliverable-image-policy
+spec:
+  urlPath: .status.latestImage
+  revisionPath: .status.latestImage
+  params:
+    - name: semver
+      default: '>=0.0.0'
+  template:
+    apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImagePolicy
+    metadata:
+      name: $(deliverable.metadata.name)$-deliverable
+      labels:
+        app.kubernetes.io/part-of: $(deliverable.metadata.name)$-deliverable
+    spec:
+      imageRepositoryRef:
+        name: $(deliverable.metadata.name)$-deliverable
+      policy:
+        semver:
+          range: $(params.semver)$
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterTemplate
+metadata:
+  name: deliverable-package-repository
+spec:
+  template:
+    apiVersion: packaging.carvel.dev/v1alpha1
+    kind: PackageRepository
+    metadata:
+      name: $(deliverable.metadata.name)$-deliverable
+      labels:
+        app.kubernetes.io/part-of: $(deliverable.metadata.name)$-deliverable
+    spec:
+      serviceAccountName: $(deliverable.spec.serviceAccountName)$
+      paused: true
+      fetch:
+        imgpkgBundle:
+          secretRef:
+            name: registry-credentials
+          image: $(source.url)$
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterDeploymentTemplate
+metadata:
+  name: deliverable-package-install
+spec:
+  observedCompletion:
+    succeeded:
+      # field to inspect on the templated object, and value to expect
+      key: 'status.conditions[?(@.type=="ReconcileSucceeded")].status'
+      value: "True"
+    failed:
+      key: 'status.conditions[?(@.type=="ReconcileFailed")].status'
+      value: "True"
+  template:
+    apiVersion: packaging.carvel.dev/v1alpha1
+    kind: PackageInstall
+    metadata:
+      name: $(deliverable.metadata.name)$-deliverable
+      labels:
+        app.kubernetes.io/part-of: $(deliverable.metadata.name)$-deliverable
+    spec:
+      serviceAccountName: $(deliverable.spec.serviceAccountName)$
+      packageRef:
+        refName: $(params.package)$
+        versionSelection:
+          constraints: ">0.0.0"
+      syncPeriod: 3m

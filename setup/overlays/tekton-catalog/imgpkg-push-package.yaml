@@ -1,0 +1,169 @@
+#@ load("@ytt:data", "data")
+
+#@ for i in range(len(data.values.namespaces)):
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: imgpkg-push-package-clustertask-pvc
+  namespace: #@ data.values.namespaces[i].name
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+  storageClassName: standard
+#@ end
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: ClusterTask
+metadata:
+  name: imgpkg-push-package
+  labels:
+    app.kubernetes.io/version: "0.1"
+    apps.tanzu.vmware.com/task: "imgpkg-push-package"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Imgpkg Push Bundle
+    tekton.dev/tags: imgpkg, imgpkg-push, imgpkg-push-package, carvel
+    tekton.dev/displayName: imgpkg-push-package
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will build and push a bundle using Carvel imgpkg.
+    This bundle will be pushed to an image registry.
+  params:
+    - name: bundle
+      description: Reference of the bundle imgpkg will produce.
+      type: string
+    - name: package
+      description: Name of the package to create (e.g. <workload-name>.demo.carto).
+      type: string
+    - name: semver
+      description: Version to use for package. If not provided, will generate "0.1.$(date +%s)"
+      type: string
+      default: ""
+  workspaces:
+    - name: source
+  results:
+    - name: image
+      description: Digest of the package just built.
+  steps:
+    - name: imgpkg-push-bundle
+      image: docker.io/library/alpine:latest
+      env:
+        - name: TASK_BIN
+          value: /workspace/bin
+        - name: TASKRUN_TEMP
+          value: /workspace/temp
+        - name: IMGPKG_CLI_URL
+          value: #@ "https://github.com/vmware-tanzu/carvel-imgpkg/releases/download/v" + data.values.versions.imgpkg + "/imgpkg-linux-amd64"
+        - name: KBLD_CLI_URL
+          value: #@ "https://github.com/vmware-tanzu/carvel-kbld/releases/download/v" + data.values.versions.kbld + "/kbld-linux-amd64"
+      workingDir: $(workspaces.source.path)
+      script: |
+
+        # Check for kbld and imgpkg. If not found, download.
+        export PATH="${TASK_BIN}":"${PATH}"
+        if [[ ! $(which imgpkg) ]]; then
+          wget -O- "${IMGPKG_CLI_URL}" > "${TASK_BIN}"/imgpkg
+          chmod +x "${TASK_BIN}"/imgpkg
+        fi
+        if [[ ! $(which kbld) ]]; then
+          wget -O- "${KBLD_CLI_URL}" > "${TASK_BIN}"/kbld
+          chmod +x "${TASK_BIN}"/kbld
+        fi
+        imgpkg version
+        kbld version
+
+        # Copy source data to writable directory
+        cp -rL /workspace/source/..data "${TASKRUN_TEMP}"/data
+        cd "${TASKRUN_TEMP}"/data
+
+        # Create images.yml and push the bundle
+        mkdir .imgpkg/
+        kbld --file . --imgpkg-lock-output .imgpkg/images.yml
+        cat .imgpkg/images.yml
+        imgpkg push -b $(params.bundle) --file . --lock-output bundle.lock.yml
+        cat bundle.lock.yml
+        pushedBundle=$(string="$(grep "image: " bundle.lock.yml)" && printf "%s\n" "${string##* }")
+
+        # Create the package configuration (assumes no values file)
+        # Package specifies how to fetch, template, and deploy the package
+        mkdir "${TASKRUN_TEMP}"/pkg-repo
+        cd "${TASKRUN_TEMP}"/pkg-repo
+        mkdir -p .imgpkg packages/$(params.package)
+
+        semverTag=$(params.semver)
+        if [[ -z ${semverTag} ]]; then
+          semverTag="0.1.$(date +%s)"
+        fi
+
+        # Create package template
+        cat > packages/$(params.package)/${semverTag}.yml << EOF
+        ---
+        apiVersion: data.packaging.carvel.dev/v1alpha1
+        kind: Package
+        metadata:
+          name: $(params.package).${semverTag}
+        spec:
+          refName: $(params.package)
+          version: ${semverTag}
+          releaseNotes: |
+                Initial release of the simple app package
+          # Template specifies how to create the underlying Kapp App resource
+          template:
+            spec:
+              fetch:
+              - imgpkgBundle:
+                  secretRef:
+                    name: registry-credentials
+                  image: ${pushedBundle}
+              template:
+              - ytt:
+                  paths:
+                  - "."
+              - kbld:
+                  paths:
+                  - "-"
+                  - .imgpkg/images.yml
+              deploy:
+              - kapp: {}
+        EOF
+
+        # Create package metadata
+        cat > packages/$(params.package)/metadata.yml << EOF
+        apiVersion: data.packaging.carvel.dev/v1alpha1
+        kind: PackageMetadata
+        metadata:
+          # This will be the name of our package
+          name: $(params.package)
+        spec:
+          displayName: "$(params.package)"
+          longDescription: "Simple app for demoing: $(params.bundle)"
+          shortDescription: "Simple app for demoing"
+          categories:
+          - demo
+        EOF
+        kbld -f packages/ --imgpkg-lock-output .imgpkg/images.yml
+        imgpkg push -b $(params.bundle)-pkg:v"${semverTag}" --file . --lock-output package.lock.yml
+        cat package.lock.yml
+
+        # Set taskrun output
+        packageDigest=$(string="$(grep "image: " package.lock.yml)" && printf "%s\n" "${string##* }")
+        echo -n "${packageDigest}" > $(results.image.path)
+
+      volumeMounts:
+        - mountPath: /workspace/temp
+          name: taskrun-rw
+        - mountPath: /workspace/bin
+          name: task-pvc
+          subPath: bin
+  volumes:
+    - name: taskrun-rw
+      emptyDir: {}
+    - name: task-pvc
+      persistentVolumeClaim:
+        claimName: imgpkg-push-package-clustertask-pvc

@@ -1,0 +1,90 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  name: git-writer
+spec:
+  urlPath: .status.outputs.url
+  revisionPath: .status.outputs.revision
+  template:
+    apiVersion: carto.run/v1alpha1
+    kind: Runnable
+    metadata:
+      name: $(workload.metadata.name)$-git-writer
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      serviceAccountName: $(workload.spec.serviceAccountName)$
+      runTemplateRef:
+        name: source-task-run
+      selector:
+        resource:
+          apiVersion: tekton.dev/v1beta1
+          kind: ClusterTask
+        matchingLabels:
+          apps.tanzu.vmware.com/task: git-cli
+      inputs:
+        workspaces:
+          - name: source
+            emptyDir: {}
+          - name: input
+            configmap:
+              name: $(workload.metadata.name)$
+          - name: ssh-directory
+            secret:
+              secretName: git-credentials
+        params:
+          - name: GIT_USER_NAME
+            value: carto-bot
+          - name: GIT_USER_EMAIL
+            value: carto-bot@donotreply.com
+          - name: USER_HOME
+            value: /root
+          - name: GIT_SCRIPT
+            value: |
+
+              cd /workspace/input
+              GIT_REPO_URL=$(grep GIT_REPO_URL .env | awk -F= '{print $2}')
+              GIT_REPO_BRANCH=$(grep GIT_REPO_BRANCH .env | awk -F= '{print $2}')
+
+              mkdir /workspace/temp
+              git clone "${GIT_REPO_URL}" /workspace/temp/repo
+              cd /workspace/temp/repo
+              git checkout -B "${GIT_REPO_BRANCH}"
+
+              # Remove everything except .git
+              mv /workspace/temp/repo/.git /workspace/temp
+              cd /workspace/temp
+              rm -rf /workspace/temp/repo
+              mkdir /workspace/temp/repo
+              mv /workspace/temp/.git /workspace/temp/repo
+              cd /workspace/temp/repo
+
+              # Add input files and force push to repo
+              for file in $(ls -A /workspace/input/..data/); do
+                cp "/workspace/input/..data/$file" .
+              done
+              git add .
+              git commit --allow-empty -m "Updating config"
+              git push -f --set-upstream origin "${GIT_REPO_BRANCH}"
+
+              RESULT_URL="$(git remote -v | awk -F' ' '{print $2}')"
+              echo -n "$RESULT_URL" > $(results.url.path)
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterRunTemplate
+metadata:
+  name: source-task-run
+spec:
+  outputs:
+    url: status.taskResults[?(@.name=="url")].value
+    revision: status.taskResults[?(@.name=="commit")].value
+  template:
+    apiVersion: tekton.dev/v1beta1
+    kind: TaskRun
+    metadata:
+      generateName: $(runnable.metadata.name)$-$(selected.metadata.name)$-
+    spec:
+      serviceAccountName: service-account
+      taskRef: {name: $(selected.metadata.name)$, kind: $(selected.kind)$}
+      workspaces: $(runnable.spec.inputs.workspaces)$
+      params: $(runnable.spec.inputs.params)$

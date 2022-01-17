@@ -1,0 +1,7 @@
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.and_op(overlay.subset({"metadata": {"namespace": "knative-serving"}}), overlay.subset({"metadata": {"name": "config-network"}}), overlay.subset({"kind": "ConfigMap"}))
+---
+data:
+  #@overlay/match missing_ok=True
+  ingress.class: contour.ingress.networking.knative.dev

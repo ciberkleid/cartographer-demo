@@ -1,0 +1,22 @@
+apiVersion: carto.run/v1alpha1
+kind: Workload
+metadata:
+  labels:
+    # This label should match the desired ClusterSupplyChain's selector
+    apps.tanzu.vmware.com/workload-type: web2pkg
+  name: hello-java-web2pkg
+spec:
+  serviceAccountName: workload-service-account
+  source:
+    git:
+      url: https://github.com/ciberkleid/hello-java.git
+      ref:
+        branch: main
+  env:
+    - name: DUMMY_KEY
+      value: dummy_value
+  params:
+    - name: containerPort
+      value: 8080
+    - name: language
+      value: java-maven

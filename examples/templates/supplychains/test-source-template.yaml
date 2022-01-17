@@ -1,0 +1,134 @@
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  name: test
+spec:
+  urlPath: .status.outputs.url
+  revisionPath: .status.outputs.revision
+  params:
+    - name: language
+      default: java
+  template:
+    apiVersion: carto.run/v1alpha1
+    kind: Runnable
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      serviceAccountName: $(workload.spec.serviceAccountName)$
+      runTemplateRef:
+        name: source-task-run-test
+      selector:
+        resource:
+          apiVersion: tekton.dev/v1beta1
+          kind: ClusterTask
+        matchingLabels:
+          apps.tanzu.vmware.com/task: test
+          apps.tanzu.vmware.com/language: $(params.language)$
+      inputs:
+        source: $(source)$
+        params:
+          - name: blob-url
+            value: $(source.url)$
+          - name: blob-revision
+            value: $(source.revision)$
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterRunTemplate
+metadata:
+  name: source-task-run-test
+spec:
+  outputs:
+    url: spec.params[?(@.name=="blob-url")].value
+    revision: spec.params[?(@.name=="blob-revision")].value
+  template:
+    apiVersion: tekton.dev/v1beta1
+    kind: TaskRun
+    metadata:
+      generateName: $(runnable.metadata.name)$-$(selected.metadata.name)$-
+    spec:
+      taskRef: {name: $(selected.metadata.name)$, kind: $(selected.kind)$}
+      params: $(runnable.spec.inputs.params)$
+---
+apiVersion: tekton.dev/v1beta1
+kind: ClusterTask
+metadata:
+  name: test-golang
+  labels:
+    apps.tanzu.vmware.com/task: test
+    apps.tanzu.vmware.com/language: golang
+spec:
+  params:
+    - name: blob-url
+    - name: blob-revision
+  steps:
+    - name: test
+      image: bitnami/golang
+      command:
+        - bash
+        - -cxe
+        - |-
+          set -o pipefail
+
+          cd `mktemp -d`
+          curl -SL $(params.blob-url) | tar xvzf -
+          go test -v ./...
+---
+apiVersion: tekton.dev/v1beta1
+kind: ClusterTask
+metadata:
+  name: test-java-maven
+  labels:
+    apps.tanzu.vmware.com/task: test
+    apps.tanzu.vmware.com/language: java-maven
+spec:
+  params:
+    - name: blob-url
+    - name: blob-revision
+  steps:
+    - name: test
+      image: maven
+      command:
+        - bash
+        - -cxe
+        - |-
+          set -o pipefail
+
+          cd `mktemp -d`
+          curl -SL $(params.blob-url) | tar xvzf -
+          if [[ -f "./mvnw" ]]; then
+            unset MAVEN_CONFIG
+            ./mvnw verify
+          else
+            mvn verify
+          fi
+---
+apiVersion: tekton.dev/v1beta1
+kind: ClusterTask
+metadata:
+  name: test-java-gradle
+  labels:
+    apps.tanzu.vmware.com/task: test
+    apps.tanzu.vmware.com/language: java-gradle
+spec:
+  params:
+    - name: blob-url
+    - name: blob-revision
+  steps:
+    - name: test
+      image: bitnami/gradle
+      command:
+        - bash
+        - -cxe
+        - |-
+          set -o pipefail
+
+          cd `mktemp -d`
+          curl -SL $(params.blob-url) | tar xvzf -
+          if [[ -f "./gradlew" ]]; then
+            ./gradlew verify
+          else
+            gradle verify
+          fi

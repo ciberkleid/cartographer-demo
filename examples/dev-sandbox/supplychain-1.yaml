@@ -1,0 +1,49 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSupplyChain
+metadata:
+  name: dev-sandbox-1
+spec:
+  selector:
+    apps.tanzu.vmware.com/workload-type: web2sandbox-1
+
+  params:
+    - name: tagPrefix
+      value: #@ data.values.registry.tagPrefix
+
+  #!
+  #!   source-provider <--[src]-- image-builder <--[img]--- deployment-deployer  <--[]---  service-deployer
+  #!     GitRepository                Image                    Deployment                     Service
+  #!
+  resources:
+    - name: source-provider
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: workload-git-repository
+
+    - name: image-builder
+      templateRef:
+        kind: ClusterImageTemplate
+        name: workload-kpack-image
+      sources:
+        - resource: source-provider
+          #! Reference in ClusterTemplate as $(sources.new-source.url)$
+          #! Can also use $(source.url) if there is only one source
+          name: new-source
+
+    - name: deployment-deployer
+      templateRef:
+        kind: ClusterTemplate
+        name: workload-k8s-deployment
+      images:
+        - resource: image-builder
+          #! Reference in ClusterTemplate as $(images.new-image)$
+          #! Can also use $(image) if there is only one image
+          name: new-image
+
+    - name: service-deployer
+      templateRef:
+        kind: ClusterTemplate
+        name: workload-k8s-service

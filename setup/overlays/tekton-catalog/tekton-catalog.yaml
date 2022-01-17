@@ -1,0 +1,25 @@
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.and_op(overlay.subset({"metadata": {"name": "git-cli"}}), overlay.subset({"kind": "Task"}))
+---
+#@overlay/match
+kind: ClusterTask
+metadata:
+  labels:
+    #@overlay/match missing_ok=True
+    apps.tanzu.vmware.com/task: git-cli
+spec:
+  results:
+    #@overlay/match by=overlay.index(0)
+    #@overlay/insert before=True
+    - name: url
+      description: The git repo URL.
+  params:
+    #@overlay/match by="name"
+    - name: GIT_SCRIPT
+      #@overlay/replace via=lambda left, right: right+left
+      default: |
+        if [[ -d ".git" ]]; then
+          RESULT_URL="$(git remote -v | awk -F' ' '{print $2}')"
+          echo -n "$RESULT_URL" > $(results.url.path)
+        fi

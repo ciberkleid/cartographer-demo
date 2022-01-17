@@ -1,0 +1,9 @@
+#@data/values
+
+---
+versions:
+  imgpkg: 0.24.0
+  kbld: 0.32.0
+
+namespaces:
+  - name: default

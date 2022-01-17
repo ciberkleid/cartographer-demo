@@ -1,0 +1,65 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSupplyChain
+metadata:
+  name: e2e-pkgops
+spec:
+  selector:
+    apps.tanzu.vmware.com/workload-type: web2pkg
+
+  params:
+    - name: tagPrefix
+      value: #@ data.values.registry.tagPrefix
+
+  #!
+  #!   source-provider <--[src]-- source-tester <--[src]-- image-builder <--[img]--- config-provider  <--[configmap]---  imgpkg-bundler
+  #!    GitRepository                TaskRun                  Image                     ConfigMap                            TaskRun
+  #!
+  resources:
+    - name: source-provider
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: workload-git-repository
+
+    - name: source-tester
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: test
+      sources:
+        - resource: source-provider
+          name: new-source
+      params:
+        - name: language
+          default: golang
+
+    - name: image-builder
+      templateRef:
+        kind: ClusterImageTemplate
+        name: workload-kpack-image
+      sources:
+        - resource: source-tester
+          #! Reference in ClusterTemplate as $(sources.new-source.url)$
+          #! Can also use $(source.url) if there is only one source
+          name: new-source
+
+    - name: config-provider
+      templateRef:
+        kind: ClusterConfigTemplate
+        name: app-config
+      images:
+        - resource: image-builder
+          #! Reference in ClusterTemplate as $(images.new-image)$
+          #! Can also use $(image) if there is only one image
+          name: new-image
+
+    - name: imgpkg-bundler
+      templateRef:
+        kind: ClusterImageTemplate
+        name: imgpkg-bundle
+      configs:
+        - resource: config-provider
+          #! Reference in ClusterTemplate as $(configs.new-config)$
+          #! Can also use $(config) if there is only one config
+          name: new-config

@@ -1,0 +1,5 @@
+#@data/values
+
+---
+registry:
+  tagPrefix: docker.io/ciberkleid/cartographer-demo-

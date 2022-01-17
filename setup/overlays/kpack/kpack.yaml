@@ -1,0 +1,59 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: kpack.io/v1alpha1
+kind: ClusterStack
+metadata:
+  name: stack
+spec:
+  id: "io.buildpacks.stacks.bionic"
+  buildImage:
+    image: "gcr.io/paketo-buildpacks/build:base-cnb"
+  runImage:
+    image: "gcr.io/paketo-buildpacks/run:base-cnb"
+---
+apiVersion: kpack.io/v1alpha1
+kind: ClusterStore
+metadata:
+  name: store
+spec:
+  sources:
+    - image: gcr.io/paketo-buildpacks/go
+    - image: gcr.io/paketo-buildpacks/java
+#!   - image: gcr.io/paketo-buildpacks/nodejs
+#!   - image: gcr.io/paketo-buildpacks/ruby
+#!   - image: gcr.io/paketo-buildpacks/python
+#!   - image: gcr.io/paketo-buildpacks/dotnet-core
+#!   - image: gcr.io/paketo-buildpacks/java-native-image
+
+---
+apiVersion: kpack.io/v1alpha1
+kind: ClusterBuilder
+metadata:
+  name: builder
+spec:
+  serviceAccountRef:
+    name: service-account
+    namespace: default
+  tag: #@ data.values.registry.tagPrefix + "builder"
+  stack:
+    name: stack
+    kind: ClusterStack
+  store:
+    name: store
+    kind: ClusterStore
+  order:
+    - group:
+        - id: paketo-buildpacks/go
+    - group:
+        - id: paketo-buildpacks/java
+#!   - group:
+#!       - id: paketo-buildpacks/nodejs
+#!   - group:
+#!       - id: paketo-buildpacks/ruby
+#!   - group:
+#!       - id: paketo-buildpacks/python
+#!   - group:
+#!       - id: paketo-buildpacks/dotnet-core
+#!   - group:
+#!       - id: paketo-buildpacks/java-native-image

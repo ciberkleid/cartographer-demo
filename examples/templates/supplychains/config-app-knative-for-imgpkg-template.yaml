@@ -1,0 +1,45 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterConfigTemplate
+metadata:
+  name: app-config
+spec:
+  params:
+    - name: containerPort
+      default: 8080
+  configPath: .data
+  ytt: |
+    #@ load("@ytt:data", "data")
+    #@ load("@ytt:struct", "struct")
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: #@ data.values.workload.metadata.name
+    data:
+      #@yaml/text-templated-strings
+      manifest.yaml: |
+        apiVersion: serving.knative.dev/v1
+        kind: Service
+        metadata:
+          name: (@= data.values.workload.metadata.name @)
+          labels:
+            app.kubernetes.io/part-of: (@= data.values.workload.metadata.name @)
+            carto.run/workload-name: (@= data.values.workload.metadata.name @)
+            app.kubernetes.io/component: run
+        spec:
+          template:
+            metadata:
+              annotations:
+                autoscaling.knative.dev/minScale: '1'
+            spec:
+              containers:
+                - name: workload
+                  image: (@= data.values.image @)
+                  (@- if hasattr(data.values.workload.spec, "env"): @)
+                  env: (@= str(struct.decode(data.values.workload.spec.env)) @)
+                  (@ end -@)
+                  ports:
+                    - containerPort: (@= str(data.values.params.containerPort) @)
+                  securityContext:
+                    runAsUser: 1000
+              imagePullSecrets:
+                - name: registry-credentials

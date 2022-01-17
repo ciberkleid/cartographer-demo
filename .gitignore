@@ -1,0 +1,5 @@
+bin/
+setup/vendir*/
+config.yaml
+setup/access-control/.ssh/
+.ssh/

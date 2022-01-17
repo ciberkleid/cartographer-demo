@@ -1,0 +1,58 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSupplyChain
+metadata:
+  name: dev-sandbox-2
+spec:
+  selector:
+    apps.tanzu.vmware.com/workload-type: web2sandbox-2
+
+  params:
+    - name: tagPrefix
+      value: #@ data.values.registry.tagPrefix
+
+  #!
+  #!   source-provider <--[src]-- image-tester <--[img]--- image-builder <--[img]--- deployer
+  #!    GitRepository               TaskRun                   Image                    App
+  #!
+  resources:
+    - name: source-provider
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: workload-git-repository
+
+    - name: source-tester
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: test
+      sources:
+        - resource: source-provider
+          name: new-source
+      params:
+        - name: language
+          default: golang
+
+    - name: image-builder
+      templateRef:
+        kind: ClusterImageTemplate
+        name: workload-kpack-image
+      sources:
+        - resource: source-tester
+          #! Reference in ClusterTemplate as $(sources.new-source.url)$
+          #! Can also use $(source.url) if there is only one source
+          name: new-source
+
+    - name: deployer-app
+      templateRef:
+        kind: ClusterTemplate
+        name: app-deploy-kapp2knative
+      images:
+        - resource: image-builder
+          #! Reference in ClusterTemplate as $(images.new-image)$
+          #! Can also use $(image) if there is only one image
+          name: new-image
+    #!      params:
+    #!        - name: containerPort
+    #!          value: 80

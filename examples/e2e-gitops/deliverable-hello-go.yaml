@@ -1,0 +1,13 @@
+apiVersion: carto.run/v1alpha1
+kind: Deliverable
+metadata:
+  name: hello-go-from-git
+  labels:
+    app.tanzu.vmware.com/workload-type: git-deliverable
+spec:
+  serviceAccountName: workload-service-account
+  source:
+    git:
+      url: https://github.com/ciberkleid/cartographer-demo-ops.git
+      ref:
+        branch: hello-go-web2git

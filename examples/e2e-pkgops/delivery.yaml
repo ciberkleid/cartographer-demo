@@ -1,0 +1,50 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterDelivery
+metadata:
+  name: pkg-delivery
+spec:
+  selector:
+    app.tanzu.vmware.com/workload-type: pkg-deliverable
+
+  params:
+    - name: tagPrefix
+      value: #@ data.values.registry.tagPrefix
+
+  #!
+  #!
+  #!   source-provider <--[]--   deployer
+  #!   PackageRepository      PackageInstall
+  resources:
+    - name: source-detector
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: deliverable-image-repository
+
+    - name: source-provider
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: deliverable-image-policy
+      sources:
+        - resource: source-detector
+          name: new-source
+#!      params:
+#!        - name: semver
+#!          value: '>=0.0.0'
+
+    - name: package-provider
+      templateRef:
+        kind: ClusterTemplate
+        name: deliverable-package-repository
+      sources:
+        - resource: source-provider
+          name: new-source
+
+    - name: deployer
+      templateRef:
+        kind: ClusterDeploymentTemplate
+        name: deliverable-package-install
+      deployment:
+        resource: package-provider

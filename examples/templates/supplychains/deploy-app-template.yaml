@@ -1,0 +1,58 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterTemplate
+metadata:
+  name: workload-k8s-deployment
+spec:
+  params:
+    - name: containerPort
+      default: 8080
+  template:
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/part-of: $(workload.metadata.name)$
+        spec:
+          serviceAccountName: $(workload.spec.serviceAccountName)$
+          containers:
+            - name: workload
+              image: $(image)$
+              env: $(workload.spec.env)$
+              resources: $(workload.spec.resources)$
+              ports:
+                - name: http-port
+                  containerPort: $(params.containerPort)$
+      selector:
+        matchLabels:
+          app.kubernetes.io/part-of: $(workload.metadata.name)$
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterTemplate
+metadata:
+  name: workload-k8s-service
+spec:
+  params:
+    - name: containerPort
+      default: 8080
+  template:
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: $(params.containerPort)$
+      selector:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+      type: ClusterIP

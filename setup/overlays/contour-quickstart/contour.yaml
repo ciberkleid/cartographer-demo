@@ -1,0 +1,15 @@
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.and_op(overlay.subset({"metadata": {"namespace": "projectcontour"}}), overlay.subset({"metadata": {"name": "envoy"}}), overlay.subset({"kind": "DaemonSet"}))
+---
+spec:
+  template:
+    spec:
+      #@overlay/match missing_ok=True
+      nodeSelector:
+        ingress-ready: "true"
+      #@overlay/match missing_ok=True
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal

@@ -1,0 +1,53 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterImageTemplate
+metadata:
+  name: imgpkg-bundle
+spec:
+  imagePath: .status.outputs.image
+  template:
+    apiVersion: carto.run/v1alpha1
+    kind: Runnable
+    metadata:
+      name: $(workload.metadata.name)$-imgpkg-bundle
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      serviceAccountName: $(workload.spec.serviceAccountName)$
+      runTemplateRef:
+        name: image-task-run
+      selector:
+        resource:
+          apiVersion: tekton.dev/v1beta1
+          kind: ClusterTask
+        matchingLabels:
+          apps.tanzu.vmware.com/task: imgpkg-push-package
+      inputs:
+        workspaces:
+          - name: source
+            configmap:
+              name: $(workload.metadata.name)$
+        params:
+          - name: bundle
+            value: $(params.tagPrefix)$$(workload.metadata.name)$-ops
+          - name: package
+            value: $(workload.metadata.name)$.demo.carto
+          - name: semver
+            value: ""
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterRunTemplate
+metadata:
+  name: image-task-run
+spec:
+  outputs:
+    image: status.taskResults[?(@.name=="image")].value
+  template:
+    apiVersion: tekton.dev/v1beta1
+    kind: TaskRun
+    metadata:
+      generateName: $(runnable.metadata.name)$-$(selected.metadata.name)$-
+    spec:
+      serviceAccountName: service-account
+      taskRef: {name: $(selected.metadata.name)$, kind: $(selected.kind)$}
+      workspaces: $(runnable.spec.inputs.workspaces)$
+      params: $(runnable.spec.inputs.params)$

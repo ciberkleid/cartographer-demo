@@ -1,0 +1,45 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  name: deliverable-git-repository
+spec:
+  urlPath: .status.artifact.url
+  revisionPath: .status.artifact.revision
+  template:
+    apiVersion: source.toolkit.fluxcd.io/v1beta1
+    kind: GitRepository
+    metadata:
+      name: $(deliverable.metadata.name)$-delivery
+    spec:
+      interval: 1m
+      url: $(deliverable.spec.source.git.url)$
+      ref: $(deliverable.spec.source.git.ref)$
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterDeploymentTemplate
+metadata:
+  name: deliverable-kapp-deployment
+spec:
+  observedCompletion:
+    succeeded:
+      #! field to inspect on the templated object, and value to expect
+      key: 'status.conditions[?(@.type=="ReconcileSucceeded")].status'
+      value: "True"
+    #! optional
+    failed:
+      key: 'status.conditions[?(@.type=="ReconcileFailed")].status'
+      value: "True"
+  template:
+    apiVersion: kappctrl.k14s.io/v1alpha1
+    kind: App
+    metadata:
+      name: $(deliverable.metadata.name)$
+    spec:
+      serviceAccountName: $(deliverable.spec.serviceAccountName)$
+      fetch:
+        - http:
+            url: $(deployment.url)$
+      template:
+        - ytt: {}
+      deploy:
+        - kapp: {}

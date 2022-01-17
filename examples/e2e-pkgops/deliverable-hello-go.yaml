@@ -1,0 +1,14 @@
+apiVersion: carto.run/v1alpha1
+kind: Deliverable
+metadata:
+  name: hello-go-from-pkg
+  labels:
+    app.tanzu.vmware.com/workload-type: pkg-deliverable
+spec:
+  serviceAccountName: workload-service-account
+  source:
+    # Delivery will prefix registry prefix
+    image: hello-go-web2pkg-ops-pkg
+  params:
+    - name: package
+      value: hello-go-web2pkg.demo.carto

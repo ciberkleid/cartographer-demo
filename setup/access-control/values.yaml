@@ -1,0 +1,38 @@
+#@data/values
+
+#! This file is intended to specify default values. To override, use:
+#! - a separate values file (ytt ---data-values-file my-values.yaml ...)
+#! - env vars, e.g. YTT_registry__password (ytt --data-values-env YTT ...)
+
+---
+#! Namespaces in which to set up access control for
+#! supply chains, workloads, deliveries, and deliverables
+#! Namespaces must be created manually first
+namespaces:
+  - name: default
+
+#!#################################################
+#!#### git configuration
+#!#### --> create .ssh/id_rsa and .ssh/known_hosts
+#!####     colocated with ytt processing files
+#!#################################################
+#! Git repository
+git:
+  server: github.com
+  #! Copy your private key file to setup/access-control/.ssh/id_rsa
+  #! Copy your known_hosts file to setup/access-control/.ssh/known_hosts
+
+#!#################################################
+#!#### image registry configuration
+#!#################################################
+registry:
+  server: https://index.docker.io/v1/
+  username: ciberkleid
+  #! Use a personal access token as the password
+  password:
+
+#! GCP settings:
+#!registry:
+#!  server: https://us-east4-docker.pkg.dev
+#!  username: _json_key
+#!  # If username is "_json_key, copy your key file to setup/access-control/.ssh/gcp-service-account.json

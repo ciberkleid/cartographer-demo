@@ -1,0 +1,24 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterDelivery
+metadata:
+  name: git-delivery
+spec:
+  selector:
+    app.tanzu.vmware.com/workload-type: git-deliverable
+
+  #
+  #
+  #   source-provider <--[src]--   deployer
+  #     GitRepository               App
+  resources:
+    - name: source-provider
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: deliverable-git-repository
+
+    - name: deployer
+      templateRef:
+        kind: ClusterDeploymentTemplate
+        name: deliverable-kapp-deployment
+      deployment:
+        resource: source-provider
