@@ -4,7 +4,7 @@
 - [Intro](README.md/#Intro)
 - [What's in this repo?](README.md/#Whats-in-this-repo?)
 - [Setup](README.md/#Setup)
-- [Cartographer Fundamentals and Syntax](README.md/#Cartographer-Fundamentals and-Syntax)
+- [Cartographer Fundamentals and Syntax](README.md/#Cartographer-Fundamentals-and-Syntax)
 - [Continuous Integration and Deployment with ClusterSupplyChains](README.md/#Continuous-Integration-and-Deployment-with-ClusterSupplyChains)
 - [Continuous Integration and Delivery with ClusterSupplyChains and ClusterDeliveries](README.md/#Continuous-Integration-and-Delivery-with-ClusterSupplyChains-and-ClusterDeliveries)
 - [Cleanup](README.md/#Cleanup)

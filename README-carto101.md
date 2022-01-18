@@ -5,7 +5,7 @@ This section introduces basic concepts and syntax for configuring Cartographer.
 This section will cover the following steps:
 
 - [Configure dependencies](README-carto101.md/#Configure-dependencies)
-- [Hook dependencies into Cartographer using Templates](README-carto101.md/#Hook dependencies-into-Cartographer-using-Templates)
+- [Hook dependencies into Cartographer using Templates](README-carto101.md/#Hook-dependencies-into-Cartographer-using-Templates)
 - [Parameterize app specific details using Workloads](README-carto101.md/#Parameterize-app-specific-details-using-Workloads)
 - [Associate Workloads with Templates using Supply Chains](README-carto101.md/#Associate-Workloads-with-Templates-using-Supply-Chains)
 - [Chain resources together](README-carto101.md/#Chain-resources-together)
