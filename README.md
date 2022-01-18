@@ -112,7 +112,7 @@ Please follow [e2e-gitops README.md](./examples/e2e-gitops/README.md) for instru
 
 #### Example: End-to-end "ImgpkgOps", Supply Chain and Delivery
 
-Please follow [e2e-pkgops README.md](./examples/pkg-gitops/README.md) for instructions on running the following scenario:
+Please follow [e2e-pkgops README.md](./examples/e2e-pkgops/README.md) for instructions on running the following scenario:
 
 **For the Supply Chain:**
 
