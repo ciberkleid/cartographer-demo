@@ -3,13 +3,13 @@
 This section will cover the following steps:
 
 - [Prerequisites](README-setup.md/#Prerequisites)
-- [Create a Kubernetes cluster](README-setup.md/#Create a Kubernetes cluster)
-- [Create an ops repo in GitHub](README-setup.md/#Create an ops repo in GitHub)
-- [SSH access to GitHub](README-setup.md/#SSH access to GitHub)
-- [Access to Docker Hub or Google Artifact Registry](README-setup.md/#Access to Docker Hub or Google Artifact Registry)
-- [Download installation files](README-setup.md/#Download installation files)
-- [Install tooling on cluster](README-setup.md/#Install tooling on cluster)
-- [Verify the installation](README-setup.md/#Verify the installation)
+- [Create a Kubernetes cluster](README-setup.md/#Create-a-Kubernetes-cluster)
+- [Create an ops repo in GitHub](README-setup.md/#Create-an-ops-repo-in-GitHub)
+- [SSH access to GitHub](README-setup.md/#SSH-access-to-GitHub)
+- [Access to Docker Hub or Google Artifact Registry](README-setup.md/#Access-to-Docker-Hub-or-Google-Artifact-Registry)
+- [Download installation files](README-setup.md/#Download-installation-files)
+- [Install tooling on cluster](README-setup.md/#Install-tooling-on-cluster)
+- [Verify the installation](README-setup.md/#Verify-the-installation)
 
 #### Prerequisites
 

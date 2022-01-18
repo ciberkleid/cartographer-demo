@@ -4,12 +4,11 @@ This section introduces basic concepts and syntax for configuring Cartographer.
 
 This section will cover the following steps:
 
-- [Configure dependencies](README-carto101.md/#Configure dependencies)
-- [Hook dependencies into Cartographer using Templates](README-carto101.md/#Hook dependencies into Cartographer using Templates)
-- [Parameterize app specific details using Workloads](README-carto101.md/#Parameterize app specific details using Workloads)
-- [Associate Workloads with Templates using Supply Chains](README-carto101.md/#Associate Workloads with Templates using Supply Chains)
-- [Chain resources](README-carto101.md/#Chain resources)  
-- [Access to Docker Hub or Google Artifact Registry](README-carto101.md/#Access to Docker Hub or Google Artifact Registry)
+- [Configure dependencies](README-carto101.md/#Configure-dependencies)
+- [Hook dependencies into Cartographer using Templates](README-carto101.md/#Hook dependencies-into-Cartographer-using-Templates)
+- [Parameterize app specific details using Workloads](README-carto101.md/#Parameterize-app-specific-details-using-Workloads)
+- [Associate Workloads with Templates using Supply Chains](README-carto101.md/#Associate-Workloads-with-Templates-using-Supply-Chains)
+- [Chain resources together](README-carto101.md/#Chain-resources-together)
 
 #### Configure dependencies
 
@@ -174,7 +173,7 @@ spec:
 Now when a developer submits a Workload, the Supply Chain with a matching selector will begin sequentially submitting the resources in the Supply Chain for that Workload.
 
 
-#### Chain resources
+#### Chain resources together
 
 In the simple example above, the Supply Chain contains only one resource—a ClusterSourceTemplate that outputs a blob-url to the latest code committed.
 
@@ -237,11 +236,6 @@ You do this in the Supply Chain:
 ```
 
 It is possible to define parameters as well as a source of values. Please visit the documentation for more information on using parameters.
-
-
-#### Access to Docker Hub or Google Artifact Registry
-
-Coming soon...
 
 <hr />
 
