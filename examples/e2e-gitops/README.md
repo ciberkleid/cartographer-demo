@@ -9,6 +9,30 @@ As a developer, every time I make a git commit, I want my source code tested and
 
 As a developer and/or app operator, every time there is new delivery (git commit) of ops configuration, I want the configuration submitted to a target Kubernetes cluster.
 
+#### Solution overview:
+
+The following table shows the sequence of activities the Cartographer Supply Chain orchestrate, as well as the tool you will be using for each activity.
+The table shows the Cartographer APIs that will be use to wrap each of the tool resources, and the inputs and outputs it will map from one resource to the next.
+
+In the `Tool Resources` column, the resources in parentheses indicate the secondary resources that  each tool will spawn.
+This is helpful for tracking progress and troubleshooting.
+
+| Activity | Tool | Tool Resources | Input | Output | Cartographer Resource |
+| --- | --- | --- | --- | --- | --- |
+| Detect changes to git source repo | Flux | gitrepository | url, branch | blob url, blob revision | ClusterSourceTemplate |
+| Test source code | Tekton | taskrun (pod) | url, revision | blob url | ClusterSourceTemplate, Runnable, ClusterRunTemplate |
+| Build & publish image | kpack | cnbimage (build, pod) | blob url | image | ClusterImageTemplate |
+| Generate config | Kubernetes | configmap | image | configmap | ClusterConfigTemplate |
+| Publish config to git | Tekton | taskrun (pod) | configmap | url, revision | ClusterSourceTemplate |
+
+The following table shows the sequence of activities the Cartographer Delivery orchestrate.
+
+| Activity | Tool | Tool Resources | Input | Output | Cartographer Resource |
+| --- | --- | --- | --- | --- | --- |
+| Detect changes to git ops repo | Flux | gitrepository | url, branch | blob url, blob revision | ClusterSourceTemplate |
+| Apply ops configuration | Kapp | app (configmap) | -- | -- | ClusterDeploymentTemplate |
+| Serve application | Knative | kservice (various - see below) | -- | -- | -- |
+
 ### Install
 
 Submit templates, supply chain, delivery, workload, and deliverable:

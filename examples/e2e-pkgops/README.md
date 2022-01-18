@@ -18,6 +18,31 @@ The package image is use as the artifact of delivery to target environments.
 In this example, the SupplyChain publishes the ops and package images instead of writing the ops configuration to git.
 The Delivery installs the package image.
 
+#### Solution overview:
+
+The following table shows the sequence of activities the Cartographer Supply Chain orchestrate, as well as the tool you will be using for each activity.
+The table shows the Cartographer APIs that will be use to wrap each of the tool resources, and the inputs and outputs it will map from one resource to the next.
+
+In the `Tool Resources` column, the resources in parentheses indicate the secondary resources that  each tool will spawn.
+This is helpful for tracking progress and troubleshooting.
+
+| Activity | Tool | Tool Resources | Input | Output | Cartographer Resource |
+| --- | --- | --- | --- | --- | --- |
+| Detect changes to git source repo | Flux | gitrepository | url, branch | blob url, blob revision | ClusterSourceTemplate |
+| Test source code | Tekton | taskrun (pod) | url, revision | blob url | ClusterSourceTemplate, Runnable, ClusterRunTemplate |
+| Build & publish image | kpack | cnbimage (build, pod) | blob url | image | ClusterImageTemplate |
+| Generate config | Kubernetes | configmap | image | configmap | ClusterConfigTemplate |
+| Publish config as imgpkg to image registry | Tekton | taskrun (pod) | configmap | image | ClusterImageTemplate |
+
+The following table shows the sequence of activities the Cartographer Delivery orchestrate.
+
+| Activity | Tool | Tool Resources | Input | Output | Cartographer Resource |
+| --- | --- | --- | --- | --- | --- |
+| Detect changes to pkg image repo | Flux | imagerepository, imagepolicy | image repo | image tag | ClusterSourceTemplate |
+| Apply ops configuration | Kapp | app (configmap), packagerepository | image | -- | ClusterTemplate |
+| Install package | Kapp | app (configmap), packageinstall | package name | -- | ClusterDeploymentTemplate |
+| Serve application | Knative | kservice (various - see below) | -- | -- | -- |
+
 ### Install
 
 Submit templates, supply chain, delivery, workload, and deliverable:

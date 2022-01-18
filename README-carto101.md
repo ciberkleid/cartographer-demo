@@ -8,6 +8,7 @@ This section will cover the following steps:
 - [Hook dependencies into Cartographer using Templates](README-carto101.md/#Hook dependencies into Cartographer using Templates)
 - [Parameterize app specific details using Workloads](README-carto101.md/#Parameterize app specific details using Workloads)
 - [Associate Workloads with Templates using Supply Chains](README-carto101.md/#Associate Workloads with Templates using Supply Chains)
+- [Chain resources](README-carto101.md/#Chain resources)  
 - [Access to Docker Hub or Google Artifact Registry](README-carto101.md/#Access to Docker Hub or Google Artifact Registry)
 
 #### Configure dependencies
@@ -98,11 +99,11 @@ spec:
 
 What happens when you want to poll a second git repository?
 
-Cartographer enables you to parameterize the workload-specific values using a [Workload API](https://cartographer.sh/docs/v0.1.0/reference/workload/#workload).
+Cartographer enables you to parameterize the workload-specific values and provide custom values using a [Workload API](https://cartographer.sh/docs/v0.1.0/reference/workload/#workload).
 
-This enables app operators to create templates that can be reused across applications and development teams, and it provides developers a way to use them without the burden of owning the implementation.
+This enables app operators to create templates that can be reused across applications and development teams, and it provides developers a way to use the templated workflows without the burden of owning the implementation.
 
-The Workload for this example would look like this:
+The Workload that a developer would submit for this example might look like this:
 ```shell
 apiVersion: carto.run/v1alpha1
 kind: Workload
@@ -153,7 +154,7 @@ The missing piece is called a Supply Chain.
 A Supply Chain lays out a particular sequence of templates, and it instructs Cartographer on how to pass the outputs of one template as input to another.
 
 Take a look at this simple Supply Chain containing only the template we have defined so far.
-Notice that the selector matches the label on the Workload, and the templateRef references the Template.
+Notice that the `selector` links the Workload to the Supply Chain, and the `templateRef` links the Supply Chain to the Template.
 ```shell
 apiVersion: carto.run/v1alpha1
 kind: ClusterSupplyChain
@@ -172,7 +173,75 @@ spec:
 
 Now when a developer submits a Workload, the Supply Chain with a matching selector will begin sequentially submitting the resources in the Supply Chain for that Workload.
 
-<WIP...>
+
+#### Chain resources
+
+In the simple example above, the Supply Chain contains only one resource—a ClusterSourceTemplate that outputs a blob-url to the latest code committed.
+
+The next step might be to build an image.
+
+Following the steps above, you would compose the template by defining the configuration for the tool of choice (let's use kpack in this example), wrapping it in the appropriate tempate (in this case, ClusterImageTemplate), and parameterizing the values that are provided by the Workload.
+
+The result might look like this:
+```yaml
+apiVersion: carto.run/v1alpha1
+kind: ClusterImageTemplate
+metadata:
+  name: workload-kpack-image
+spec:
+  # ClusterImageTemplate output field
+  # specifying jsonpath to the desired value
+  imagePath: .status.latestImage
+  
+  template:
+    # The kpack Image resource configuration
+    apiVersion: kpack.io/v1alpha1
+    kind: Image
+    metadata:
+      name: $(workload.metadata.name)$
+      labels:
+        app.kubernetes.io/part-of: $(workload.metadata.name)$
+    spec:
+      tag: us-east4-docker.pkg.dev/fe-ciberkleid/cartographer-demo/$(workload.metadata.name)$
+      serviceAccount: service-account
+      builder:
+        kind: ClusterBuilder
+        name: builder
+      source:
+        blob:
+          # Placeholder for Cartographer to populate using ClusterSourceTemplate output
+          url: $(source.url)$
+```
+
+Notice the last field, `url`, is parameterized using `source` instead of`workload`.
+
+The last step is to tell Cartographer which resource that `source` is, so it can retrieve the url from that source and inject it here.
+
+You do this in the Supply Chain:
+```yaml
+  resources:
+    - name: source-provider
+      templateRef:
+        kind: ClusterSourceTemplate
+        name: workload-git-repository
+
+    - name: image-builder
+      templateRef:
+        kind: ClusterImageTemplate
+        name: workload-kpack-image
+      sources:
+        - resource: source-provider
+          # In ClusterTemplate, use $(sources.new-source.url)$
+          # Can also use $(source.url) if there is only one source
+          name: new-source
+```
+
+It is possible to define parameters as well as a source of values. Please visit the documentation for more information on using parameters.
+
+
+#### Access to Docker Hub or Google Artifact Registry
+
+Coming soon...
 
 <hr />
 

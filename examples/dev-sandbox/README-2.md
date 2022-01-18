@@ -6,6 +6,22 @@
 ##### Use case:
 As a developer, every time I make a git commit, I want my source code tested, published as a container image, and deployed to Kubernetes using a a Knative Service configuration.
 
+#### Solution overview:
+
+The following table shows the sequence of activities the Cartographer Supply Chain will orchestrate, as well as the tool you will be using for each activity.
+The table shows the Cartographer APIs that will be use to wrap each of the tool resources, and the inputs and outputs it will map from one resource to the next.
+
+In the `Tool Resources` column, the resources in parentheses indicate the secondary resources that  each tool will spawn.
+This is helpful for tracking progress and troubleshooting.
+
+| Activity | Tool | Tool Resources | Input | Output | Cartographer Resource |
+| --- | --- | --- | --- | --- | --- |
+| Detect changes to git source repo | Flux | gitrepository | url, branch | blob url, blob revision | ClusterSourceTemplate |
+| Test source code | Tekton | taskrun (pod) | blob url, blob revision | blob url | ClusterSourceTemplate, Runnable, ClusterRunTemplate |
+| Build & publish image | kpack | cnbimage (build, pod) | blob url | image | ClusterImageTemplate |
+| Apply configuration | Kapp | app (configmap) | -- | -- | ClusterTemplate |
+| Serve application | Knative | kservice (various - see below) | image | -- | ClusterTemplate |
+
 ### Install
 
 Submit templates, supply chain, and workload:
@@ -61,7 +77,7 @@ kubectl get all -n apps-dev
 ```
 
 You should see all the resources that Knative Serving creates by default for the deployment of a Knative Service.
-It shoul look something like this:
+It should look something like this:
 ```shell
 $ kubectl get all -n apps-dev
 NAME                                                           READY   STATUS      RESTARTS   AGE
