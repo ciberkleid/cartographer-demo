@@ -144,16 +144,20 @@ kind delete cluster --name cartographer-demo
 If you provided your own cluster and want to do a more selective cleanup:
 
 **1. Delete Workloads and Deliverables**
+
 List the workloads and deliverables using `kubectl get workloads,deliverables -A`, and then use `kubect delete <type> <name> -n <namespace>` to delete each one.
 This will also delete the associated resources and the app.
 
 **2. Delete ClusterSupplyChains and ClusterDeliveries**
+
 Run `kapp delete -a example-workflows -n default --yes`
 
 **3. Delete tools**
+
 List the applications using `kapp list -A`, and then use `kapp delete -a <application name> -n <namespace>` to delete each one.
 
 **4. Delete images**
+
 If you are using Google Artifact Repository, go to your GCP Console and delete the images created by the demo to avoid incurring any storage cost.
 
 [Cartographer]: https://cartographer.sh
